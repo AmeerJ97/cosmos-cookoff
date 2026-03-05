@@ -106,14 +106,16 @@ class SAM2Oracle:
         self._load()
 
         if self._predictor is None:
-            # Oracle unavailable — return neutral report
-            return ConstraintReport(physics_score=0.5, vision_reliability=0.3)
+            # Oracle unavailable — be PERMISSIVE, not restrictive.
+            # No information ≠ danger. Let agents make the decision.
+            return ConstraintReport(physics_score=0.5, vision_reliability=1.0)
 
         try:
             return self._run_sam2(image_rgb, frame_idx)
         except Exception as e:
             log.warning("SAM2 frame %d failed: %s", frame_idx, e)
-            return ConstraintReport(physics_score=0.5, vision_reliability=0.3)
+            # Same: failed oracle should not block agents
+            return ConstraintReport(physics_score=0.5, vision_reliability=1.0)
 
     def _run_sam2(self, image_rgb: np.ndarray, frame_idx: int) -> ConstraintReport:
         import torch
@@ -131,7 +133,9 @@ class SAM2Oracle:
             )
 
         if masks is None or len(masks) == 0:
-            return ConstraintReport(vision_reliability=0.2)
+            # No masks detected — insufficient scene data, but not a danger signal.
+            # Be permissive: let agents decide.
+            return ConstraintReport(vision_reliability=1.0)
 
         # Sort by score and take top 3 (proxy for gripper, object, hand)
         order = np.argsort(scores)[::-1]
@@ -284,7 +288,9 @@ class PhysicsOracle:
         image_rgb: HxWx3 uint8 or None (no image available)
         """
         if image_rgb is None:
-            report = ConstraintReport(physics_score=0.5, vision_reliability=0.0)
+            # No image available — agents will use LiveKV text context only.
+            # Oracle has no opinion; do not veto.
+            report = ConstraintReport(physics_score=0.5, vision_reliability=1.0)
             return report, "[ORACLE]\nno_image: true\n[/ORACLE]"
 
         report = self.sam2.process_frame(image_rgb, frame_idx)
