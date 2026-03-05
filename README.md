@@ -1,11 +1,11 @@
 # ABEE — Adversarial Blind Epistemic Ensemble
-**NVIDIA Cosmos Cookoff** · Robotic handoff safety via multi-agent epistemic voting on `nvidia/cosmos-reason2-8b`
+**NVIDIA Cosmos Cookoff** · Robotic handoff safety via multi-agent epistemic reasoning on `nvidia/cosmos-reason2-8b`
 
 ---
 
 ## What it does
 
-ABEE determines the **safe release window** during a human-robot object handoff. Four blind, information-asymmetric agents each query Cosmos Reason 2 in parallel, vote ACT (release now) or THINK (wait), and the orchestrator resolves consensus under a real-time survival game. Wrong votes drain life points; dead agents are replaced by Hyper-GRPO sampling a new identity from 36 possible configurations.
+ABEE determines the **safe release window** during a human-robot object handoff. Three blind, information-asymmetric agents each independently query Cosmos Reason 2, producing an ACT (release now) or THINK (wait) decision with zero awareness of each other. The orchestrator resolves their independent decisions under a real-time survival game. Wrong decisions drain life points; dead agents are replaced by Hyper-GRPO sampling a new identity from 36 possible configurations.
 
 ---
 
@@ -16,22 +16,21 @@ flowchart TD
     DS[(MIMIC Dataset\n1,137 trajectories\n30,666 frames)] --> ORC
 
     subgraph ORC["Orchestrator — asyncio game loop"]
-        FR[Frame t] --> PHY[Physics Oracle\nSAM2 + MiDaS depth]
-        PHY -->|hard veto| OUT
-        PHY -->|pass| EMB[cosmos-embed-1.0\n768-dim]
+        FR[Frame t] --> VB[Vision Bridge\nSAM2 + MiDaS depth]
+        VB -->|hard veto| OUT
+        VB -->|pass| EMB[cosmos-embed-1.0\n768-dim]
         EMB --> LKV[(LiveKV\nRedis FIFO\nwindow 5-30)]
         EMB --> AKV[(ArchiveKV\nFAISS top-3\n3,040 golden rules)]
         LKV --> AGT
         AKV --> AGT
 
-        subgraph AGT["P x T x M Blind Agents  (async, parallel)"]
+        subgraph AGT["P x T x M Blind Agents  (async, independent)"]
             A[Alpha\nconservative · stride 1 · full]
             B[Beta\nspeed · stride 3 · gripper]
             G[Gamma\nskeptic · stride 1 · velocity]
-            D[Delta\narchival · stride 2 · full]
         end
 
-        AGT -->|votes| CON{"Dynamic consensus\n>=100% t<8 · >=85% t<15 · >=66% t>=15"}
+        AGT -->|independent decisions| CON{"Dynamic consensus\n>=100% t<8 · >=85% t<15 · >=66% t>=15"}
         CON -->|split| TIE[cosmos-predict2-14b\ntie-breaker]
         CON -->|agree| LP[Life-Points scorer\nL_MAX=100 · wrong ACT=-33]
         TIE --> LP
@@ -47,12 +46,13 @@ flowchart TD
 
 ## Key innovations
 
-- **P×T×M asymmetry matrix** — 4 bias × 3 stride × 3 modality = **36 possible agent identities**. Each active agent sees a structurally different projection of the same frame, preventing correlated failure.
-- **Dual-cache memory** — *LiveKV* (Redis sliding window, 5–30 frames) provides temporal continuity; *ArchiveKV* (FAISS 768-dim, `nvidia/cosmos-embed-1.0`) retrieves top-3 golden rules from 722 distilled trajectory outcomes.
+- **Blind epistemic independence** — Each agent decides ACT or THINK with zero awareness of other agents. No voting protocol exists. The orchestrator applies consensus externally, invisible to agents — preventing correlated failure and gaming.
+- **P x T x M asymmetry matrix** — 4 bias x 3 stride x 3 modality = **36 possible agent identities**. Each active agent sees a structurally different projection of the same frame, preventing correlated failure.
+- **Dual-cache memory** — *LiveKV* (Redis sliding window, 5-30 frames) provides temporal continuity; *ArchiveKV* (FAISS 768-dim, `nvidia/cosmos-embed-1.0`) retrieves top-3 golden rules from 722 distilled trajectory outcomes.
 - **Life-Points survival game** — agents accrue damage (`THINK` drains 2 pts/frame; wrong `ACT` removes 33 pts; early wrong `ACT` removes 66 pts). Death triggers immediate Hyper-GRPO respawn with no human intervention.
-- **Hyper-GRPO bandit** — gradient-free identity selection (`lr=0.1`, entropy injection `σ=0.5`) replaces dead agents with the highest-EV unexplored identity from the 36-identity space.
-- **Dynamic consensus threshold** — unanimity required at early frames (t < 8), 85% at mid, 66% late. Asymmetric error costs justify tighter safety at frame onset.
-- **Physics oracle hard veto** — SAM2 segmentation + MiDaS relative depth can block a release before agents are consulted; permissive fallback when GPU is unavailable so the pipeline never blocks on missing hardware.
+- **Hyper-GRPO bandit** — gradient-free identity selection (`lr=0.1`, entropy injection `sigma=0.5`) replaces dead agents with the highest-EV unexplored identity from the 36-identity space.
+- **Dynamic consensus threshold** — unanimity required at early frames (t < 8), 85% at mid, 66% late. Asymmetric error costs justify tighter safety at frame onset. This mechanism is invisible to agents.
+- **Vision bridge** — SAM2 segmentation + MiDaS relative depth provides vision stream data to agents and can hard-veto obviously unsafe releases before agents are consulted. Permissive fallback when GPU is unavailable.
 - **SFT data exhaust** — winning agent reasoning traces are serialised to `sft_dataset.jsonl` for downstream fine-tuning of Cosmos Reason 2 (capped at 500 tokens/trace).
 
 ---
@@ -62,11 +62,34 @@ flowchart TD
 | Role | Model | Purpose |
 |---|---|---|
 | Primary reasoning | `nvidia/cosmos-reason2-8b` | Each agent issues `<think>` chain-of-thought + JSON `{decision, action_type, confidence}` |
-| Tie-breaker | `nvidia/cosmos-predict2-14b` | Invoked only on split votes when dynamic consensus threshold is not met |
+| Tie-breaker | `nvidia/cosmos-predict2-14b` | Invoked only on split decisions when dynamic consensus threshold is not met |
 | Memory embedding | `nvidia/cosmos-embed-1.0` | 768-dim frame embeddings for LiveKV insertion and ArchiveKV FAISS retrieval |
 
-All models accessed via **NVIDIA NIM API** (`https://integrate.api.nvidia.com/v1`).  
+All models accessed via **NVIDIA NIM API** (`https://integrate.api.nvidia.com/v1`).
 A local 4-bit inference path exists as fallback (`USE_LOCAL_MODEL=True` in `configs/settings.py`).
+
+---
+
+## Training pipeline
+
+### Data Factory — Cosmos multi-model generation loop
+
+The SFT dataset is built through a multi-model pipeline rather than single-model extraction:
+
+1. **Cosmos Predict** synthesizes novel trajectory frames from seed episodes, expanding visual diversity beyond the source dataset.
+2. **Cosmos Reason quality gate** filters synthetic frames — only trajectories where Reason 2 produces coherent chain-of-thought survive into the training set.
+3. **Nemotron reasoning enrichment** rewrites surviving traces into dense step-by-step rationales, improving downstream SFT signal quality.
+4. **Multi-modal synthetic overlays** augment frames with lighting, occlusion, and sensor-noise variations to reduce domain shift.
+
+New agents undergo a **spectating burn-in** period: they observe live frames and consensus outcomes without contributing decisions, accumulating LiveKV context before going live. This conditions conservative initial behavior without explicit threshold tuning.
+
+### Vertex AI — serverless CustomJob deployment
+
+Training runs are packaged as Vertex AI `CustomJob` payloads with pre-built container images. Serverless execution eliminates idle GPU cost — each job spins up an A100 node, trains, and tears down automatically. Job definitions live in `scripts/vertex_train.py` with container config in `vertex_training/Dockerfile`.
+
+### QLoRA — NF4 rank-32 on A100
+
+Fine-tuning uses 4-bit NormalFloat quantization (NF4) with LoRA rank 32 and alpha 64, targeting `q_proj`, `k_proj`, `v_proj`, `o_proj` attention layers. This fits the full 8B parameter model into a single A100 40GB with ~12GB headroom for activation checkpointing. Training cost per SFT run: approximately $25 on spot instances.
 
 ---
 
@@ -140,7 +163,7 @@ python run_abee.py --trajectories 20 --dashboard
 | Trajectories | 1,137 |
 | Frames | 30,666 |
 | Task | `mimic_displacement_to_handover_blue_block` (v2, v6, v7, v8) |
-| Conversion | `scripts/convert_mimic_to_abee.py` → `data/manifest.json` |
+| Conversion | `scripts/convert_mimic_to_abee.py` -> `data/manifest.json` |
 
 ---
 
@@ -175,18 +198,24 @@ abee_pkg/
   scorer.py          O(1) kinematic evaluation, Life-Points, dynamic consensus
   grpo.py            Hyper-GRPO bandit over 36 identity combinations
   memory.py          DualCache — Redis LiveKV + FAISS ArchiveKV
-  oracle.py          Physics oracle — SAM2 + MiDaS hard veto
+  oracle.py          Vision bridge — SAM2 + MiDaS scene analysis
   models.py          Pydantic schemas — decisions, state, SFT records
   sft.py             SFT dataset serializer (JSONL + OpenAI format)
   data_loader.py     Manifest loader + synthetic data generator
 configs/
   settings.py        all tunable hyperparameters in one place
 dashboard/
-  app.py             Plotly Dash real-time telemetry (3D UMAP, life-points, votes)
+  app.py             Plotly Dash real-time telemetry (3D UMAP, life-points, decisions)
 data/                manifest, frames, results, FAISS index (gitignored)
 scripts/
-  convert_mimic_to_abee.py   MIMIC dataset → ABEE manifest converter
+  convert_mimic_to_abee.py   MIMIC dataset -> ABEE manifest converter
+  cosmos_data_factory.py     multi-model data generation pipeline
+  train_qlora.py             QLoRA fine-tuning (A100 or Vertex AI)
+  vertex_train.py            Vertex AI serverless job submission
+  gpu_setup.sh               GPU VM provisioning script
   test_api.py                NIM API connectivity test
+vertex_training/
+  Dockerfile                 production training container
 docs/
   Architecture docs/         system design, training pipeline, sensor proposals
   research/                  VLM training, Gaussian splatting, sensor research

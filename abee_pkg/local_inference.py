@@ -149,11 +149,14 @@ def _build_messages(
     if frame.image_b64:
         content.insert(0, {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{frame.image_b64}"}})
 
+    from .agents import SPECTATING_BLOCK  # noqa: E402 — avoid circular import at module level
+
     return [
         {"role": "system", "content": (
             f"You are a physical AI agent evaluating a human-robot object handoff.\n"
             f"[BIAS: {agent.prompt_bias}]\n"
-            f"Temporal stride: {agent.temporal_stride}x. Modality: {agent.modality_mask}.\n"
+            f"Temporal stride: {agent.temporal_stride}x. Modality: {agent.modality_mask}.\n\n"
+            + SPECTATING_BLOCK
         )},
         {"role": "user", "content": content},
     ]
@@ -231,18 +234,30 @@ def run_all_agents_local(
     agents: list[AgentState],
     frame: FrameData,
     live_kv_windows: dict[int, list[str]],
-    archive_memories: list[ArchiveMemory],
-    oracle_block: str = "",
+    agent_archives: dict[int, list[ArchiveMemory]] | list[ArchiveMemory] = None,
+    agent_oracle_blocks: dict[int, str] | str = "",
 ) -> list[AgentResponse]:
     """
     Run all agents in parallel threads — each has its own model instance in RAM,
     GPU handles compute for whichever thread is currently running.
+
+    agent_archives: per-agent dict or shared list (for backwards compat)
+    agent_oracle_blocks: per-agent dict or shared string (for backwards compat)
     """
+    # Support both per-agent dicts and shared values (backwards compat)
+    if isinstance(agent_archives, list) or agent_archives is None:
+        _shared_archives = agent_archives or []
+        agent_archives = {a.agent_idx: _shared_archives for a in agents}
+    if isinstance(agent_oracle_blocks, str):
+        _shared_block = agent_oracle_blocks
+        agent_oracle_blocks = {a.agent_idx: _shared_block for a in agents}
+
     def _run(agent):
         return run_agent_local(
             agent, frame,
             live_kv_windows.get(agent.agent_idx, []),
-            archive_memories, oracle_block,
+            agent_archives.get(agent.agent_idx, []),
+            agent_oracle_blocks.get(agent.agent_idx, ""),
         )
 
     with ThreadPoolExecutor(max_workers=len(agents)) as ex:

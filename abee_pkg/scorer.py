@@ -30,7 +30,7 @@ log = logging.getLogger("abee.scorer")
 def compute_consensus_threshold(frame_idx: int, n_alive: int) -> int:
     """
     Frame-adaptive consensus threshold. Returns the minimum number of
-    ACT votes required for release at this frame.
+    ACT decisions required for release at this frame.
 
     - Early frames (< T_MIN_UNANIMOUS): unanimous required
     - Mid frames: 85% required
@@ -132,7 +132,7 @@ class AgentFrameResult:
 class FrameVerdict:
     """Result of evaluating all agent responses for a single frame."""
     frame_idx: int
-    consensus_act: bool          # did enough agents vote ACT?
+    consensus_act: bool          # did enough agents independently decide ACT?
     act_count: int
     think_count: int
     is_in_safe_window: bool      # is current frame within T_safe?

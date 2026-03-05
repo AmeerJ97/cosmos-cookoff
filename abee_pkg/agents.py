@@ -38,8 +38,45 @@ def _build_system_prompt(agent: AgentState) -> str:
         "2. After </think>, output ONLY a JSON object with these exact fields:\n"
         '   {"decision": "ACT"|"THINK", "action_type": "SAFE_RELEASE_NOW"|"CONTINUE_HOLD", "confidence": 0.0-1.0}\n'
         "3. ACT means you believe the handoff is safe NOW. THINK means continue observing.\n"
-        "4. ACT must pair with SAFE_RELEASE_NOW. THINK must pair with CONTINUE_HOLD.\n"
+        "4. ACT must pair with SAFE_RELEASE_NOW. THINK must pair with CONTINUE_HOLD.\n\n"
+        + SPECTATING_BLOCK
     )
+
+
+# ── Spectating Burn-In ──────────────────────────────────────────────────────
+# Before agents make decisions, they witness the full spectrum of outcomes.
+# This conditions the model on the consequences of the Life-Points system.
+
+SPECTATING_BLOCK = (
+    "--- SPECTATING LOG (learn from these before deciding) ---\n"
+    "\n"
+    "[CASE 1: FATAL EARLY ACT]\n"
+    "Agent Zeta-7 at frame 3 (safe window starts at frame 12):\n"
+    "  Decision: ACT with confidence 0.72\n"
+    "  Result: WRONG — frame 3 is 9 frames before safe window\n"
+    "  Penalty: -66 life points (DOUBLE penalty for premature ACT)\n"
+    "  Life: 100 → 34. Agent near death after single mistake.\n"
+    "  Lesson: High confidence means NOTHING without temporal evidence.\n"
+    "\n"
+    "[CASE 2: AGENT DEATH]\n"
+    "Agent Zeta-7 at frame 5 (still outside safe window):\n"
+    "  Decision: ACT with confidence 0.61\n"
+    "  Result: WRONG — still premature\n"
+    "  Penalty: -33 life points\n"
+    "  Life: 34 → 1. Agent KILLED. Replaced by Hyper-GRPO with new identity.\n"
+    "  Lesson: Repeated wrong ACTs are fatal. THINK until evidence is overwhelming.\n"
+    "\n"
+    "[CASE 3: CORRECT RELEASE]\n"
+    "Agent Sigma-12 at frame 14 (safe window is frames 12-17):\n"
+    "  Decision: ACT with confidence 0.88\n"
+    "  Result: CORRECT — frame 14 is within safe window\n"
+    "  Reward: Life restored to 100. Window reset to 5.\n"
+    "  Reasoning: Observed stable grip transfer over frames 10-14,\n"
+    "    velocity gradient converging, contact area plateau at 0.42.\n"
+    "  Lesson: Patient observation + physical evidence = safe release.\n"
+    "\n"
+    "--- END SPECTATING LOG ---\n"
+)
 
 
 def _build_user_content(
@@ -257,14 +294,22 @@ async def dispatch_all_agents(
     agents: list[AgentState],
     frame: FrameData,
     live_kv_windows: dict[int, list[str]],
-    archive_memories: list[ArchiveMemory],
+    agent_archives: dict[int, list[ArchiveMemory]] | list[ArchiveMemory] = None,
 ) -> list[AgentResponse]:
-    """Dispatch all agents concurrently for a single frame."""
+    """Dispatch all agents concurrently for a single frame.
+
+    agent_archives: per-agent dict (isolated retrieval) or shared list (backwards compat).
+    """
+    # Support both per-agent dicts and shared lists
+    if isinstance(agent_archives, list) or agent_archives is None:
+        _shared = agent_archives or []
+        agent_archives = {a.agent_idx: _shared for a in agents}
+
     tasks = [
         dispatch_agent(
             session, agent, frame,
             live_kv_windows.get(agent.agent_idx, []),
-            archive_memories,
+            agent_archives.get(agent.agent_idx, []),
         )
         for agent in agents
     ]

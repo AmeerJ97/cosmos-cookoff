@@ -100,8 +100,8 @@ async def invoke_predict_tiebreaker(
     from configs.settings import NIM_BASE_URL, NIM_PREDICT_MODEL
     log.info("Invoking Predict2.5 tie-breaker at frame %d", frame.frame_idx)
 
-    votes = {r.agent_name: (r.decision.decision if r.decision else "FAIL") for r in responses}
-    vote_summary = ", ".join(f"{k}={v}" for k, v in votes.items())
+    decisions = {r.agent_name: (r.decision.decision if r.decision else "FAIL") for r in responses}
+    decision_summary = ", ".join(f"{k}={v}" for k, v in decisions.items())
 
     payload = {
         "model": NIM_PREDICT_MODEL,
@@ -109,7 +109,7 @@ async def invoke_predict_tiebreaker(
             "role": "user",
             "content": (
                 f"Agent disagreement at frame {frame.frame_idx}. "
-                f"Votes: {vote_summary}. "
+                f"Decisions: {decision_summary}. "
                 "Based on your world model prediction of the next frame, "
                 "is this handoff currently SAFE to release? "
                 "Reply with exactly: ACT or THINK."
@@ -135,6 +135,37 @@ async def invoke_predict_tiebreaker(
     except Exception as e:
         log.warning("Predict2.5 tiebreaker failed: %s", e)
     return None
+
+
+# ── Per-Agent Oracle Block Filter ────────────────────────────────────────────
+
+def _filter_oracle_block(oracle_block: str, modality_mask: str) -> str:
+    """Filter oracle output by agent modality to prevent correlated contamination.
+
+    - 'gripper' agents see only contact/grip fields
+    - 'velocity' agents see only motion/velocity fields
+    - 'full' agents see everything
+    """
+    if modality_mask == "full" or not oracle_block:
+        return oracle_block
+
+    lines = oracle_block.split("\n")
+    filtered = []
+    for line in lines:
+        lower = line.lower()
+        if lower.startswith("[oracle]") or lower.startswith("[/oracle]"):
+            filtered.append(line)
+            continue
+        if modality_mask == "gripper":
+            # Only keep contact/grip/occlusion fields
+            if any(k in lower for k in ["contact", "grip", "occlusion", "no_image"]):
+                filtered.append(line)
+        elif modality_mask == "velocity":
+            # Only keep velocity/motion/physics score fields
+            if any(k in lower for k in ["velocity", "physics_score", "depth", "no_image"]):
+                filtered.append(line)
+
+    return "\n".join(filtered)
 
 
 # ── Main Orchestrator ────────────────────────────────────────────────────────
@@ -274,21 +305,35 @@ class Orchestrator:
                     self.telemetry_cb(trajectory.trajectory_id, frame_idx, verdict, embedding)
                 continue
 
-            # ── Step 4: Build per-agent sliding windows ──────────────────
+            # ── Step 4: Build per-agent isolated context ────────────────
+            # Each agent gets its own LiveKV window, archive memories,
+            # and oracle block — filtered by modality mask to prevent
+            # correlated failures from shared input contamination.
             live_windows: dict[int, list[str]] = {}
+            agent_archives: dict[int, list] = {}
+            agent_oracle_blocks: dict[int, str] = {}
             for agent in living:
                 live_windows[agent.agent_idx] = self.cache.get_live_window(
                     trajectory.trajectory_id, frame_idx, agent.window_size
+                )
+                # Per-agent archive retrieval (modality-masked embedding query)
+                agent_archives[agent.agent_idx] = self.cache.retrieve_archive(
+                    embedding, modality_mask=agent.modality_mask
+                )
+                # Per-agent oracle block (filter by modality)
+                agent_oracle_blocks[agent.agent_idx] = _filter_oracle_block(
+                    oracle_block, agent.modality_mask
                 )
 
             # ── Step 5: Dispatch living agents ───────────────────────────
             if USE_LOCAL_MODEL:
                 responses = run_all_agents_local(
-                    living, frame, live_windows, archive_hits, oracle_block
+                    living, frame, live_windows,
+                    agent_archives, agent_oracle_blocks,
                 )
             else:
                 responses = await dispatch_all_agents(
-                    session, living, frame, live_windows, archive_hits
+                    session, living, frame, live_windows, agent_archives
                 )
 
             # ── Step 6: Kinematic evaluation (with Life-Points) ──────────
@@ -324,8 +369,8 @@ class Orchestrator:
                     trajectory.trajectory_id, frame_idx, verdict, embedding
                 )
 
-            # ── Step 9: Tie-breaker for split votes ──────────────────────
-            # Only invoke if tiebreaker vote could actually push us over threshold
+            # ── Step 9: Tie-breaker for split decisions ────────────────────
+            # Only invoke if tiebreaker could push us over threshold
             if (verdict.act_count > 0
                     and verdict.act_count < verdict.n_alive
                     and not verdict.consensus_act

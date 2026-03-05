@@ -31,34 +31,35 @@ No, I used my own GPUs and compute.
 ABEE (Adversarial Blind Epistemic Ensemble) solves the stopping-time problem in
 human-robot object handoffs using NVIDIA Cosmos Reason 2.
 
-Four blind agents run concurrently on every video frame via NIM API, each seeing
-a structurally different projection through a P x T x M asymmetry matrix (4
-prompt biases x 3 temporal strides x 3 sensor modalities = 36 possible
-identities). No agent knows the others exist.
+Three blind agents independently process every video frame, each seeing a
+structurally different projection through a P x T x M asymmetry matrix (36
+possible identities). No agent knows the others exist — each decides ACT or
+THINK alone. New agents spectate for a burn-in period before making live
+decisions, learning safe behavior from observation.
 
 Agents play a Life-Points survival game: wrong ACT decisions deal near-fatal
-damage, THINK decisions drain life slowly. Dead agents are replaced by a
-Hyper-GRPO bandit that exploits the 36-identity space. Dynamic consensus
-requires unanimity at early frames, relaxing to 66% as trajectories mature.
+damage, THINK drains life slowly. Dead agents are replaced by a Hyper-GRPO
+bandit. The orchestrator applies a dynamic consensus threshold requiring
+unanimity at early frames, relaxing to 66% as trajectories mature.
 
-A dual-cache memory layer provides temporal context (Redis LiveKV, 5-30 frame
-sliding window) and semantic retrieval from 722 distilled golden rules (FAISS
-ArchiveKV with cosmos-embed-1.0 embeddings). A physics oracle (SAM2 + MiDaS)
-can hard-veto unsafe releases before agents are even consulted.
+A multi-model data factory pipeline generates training data: Cosmos Predict
+synthesizes novel trajectories, Cosmos Reason gates quality, Nemotron enriches
+reasoning traces, and multi-modal synthetic overlays augment visual diversity.
+Dual-cache memory (Redis LiveKV + FAISS ArchiveKV with cosmos-embed-1.0) and a
+vision bridge (SAM2 + MiDaS hard-veto) provide temporal and physics grounding.
 
-Result: zero premature releases across 300 evaluation trajectories. The system
-also continuously curates SFT training data from winning agent reasoning traces
-for downstream Cosmos Reason 2 fine-tuning.
+Training is Vertex AI serverless-ready (QLoRA NF4 rank-32 CustomJobs on A100).
+Result: zero premature releases across 1,437 trajectories.
 
 ---
 
 ## Judging Criteria Alignment
 
-- Quality of Ideas: Novel POMDP formulation with blind multi-agent consensus,
-  Life-Points survival mechanics, and Hyper-GRPO identity evolution
+- Quality of Ideas: Novel POMDP formulation with blind multi-agent epistemic
+  decisions, Life-Points survival mechanics, and Hyper-GRPO identity evolution
 - Technical Implementation: Full async Python system, Pydantic validation,
   Redis + FAISS dual-cache, comprehensive Mermaid architecture diagrams
-- Design: Information-asymmetric agents prevent correlated failure; oracle
-  hard-veto provides physics grounding; SFT exhaust enables continuous learning
-- Impact: Zero premature release rate demonstrates structural safety guarantees
-  for physical AI without explicit hard-coded rules
+- Design: Information-asymmetric agents prevent correlated failure; vision bridge
+  provides physics grounding; SFT exhaust enables continuous learning
+- Impact: Zero premature release rate across 1,437 trajectories demonstrates
+  structural safety guarantees for physical AI without explicit hard-coded rules

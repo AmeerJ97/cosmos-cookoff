@@ -191,8 +191,29 @@ class DualCache:
     ) -> list[str]:
         return self.live.get_window(trajectory_id, frame_idx, window_size)
 
-    def retrieve_archive(self, embedding: list[float]) -> list[ArchiveMemory]:
-        return self.archive.retrieve(embedding)
+    def retrieve_archive(
+        self, embedding: list[float], modality_mask: str = "full"
+    ) -> list[ArchiveMemory]:
+        """Retrieve archive memories using modality-masked embedding.
+
+        Each modality mask produces a structurally different query vector,
+        so agents with different masks get different golden rules — preventing
+        correlated retrieval failure.
+        """
+        if not embedding or len(embedding) < FAISS_DIM:
+            return self.archive.retrieve(embedding)
+
+        masked = list(embedding)
+        if modality_mask == "gripper":
+            # Zero out velocity subspace — retrieve based on grip geometry only
+            for i in range(384, min(len(masked), FAISS_DIM)):
+                masked[i] = 0.0
+        elif modality_mask == "velocity":
+            # Zero out gripper subspace — retrieve based on motion features only
+            for i in range(min(384, len(masked))):
+                masked[i] = 0.0
+
+        return self.archive.retrieve(masked)
 
     def add_golden_memory(self, memory: ArchiveMemory):
         self.archive.add_memory(memory)

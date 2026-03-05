@@ -26,7 +26,7 @@ ABEE answers one binary question per video frame:
 
 > **Is it safe to release the object right now during a human-robot handoff?**
 
-A real-time stream of RGB frames from a robot arm performing a handover is processed by an ensemble of 4 information-asymmetric VLM agents (Cosmos-Reason2-8B). Each agent independently emits either `ACT` (release now) or `THINK` (keep holding). When enough agents agree to ACT — with the threshold varying by frame position — the release window is committed.
+A real-time stream of RGB frames from a robot arm performing a handover is processed by an ensemble of 3 information-asymmetric VLM agents (Cosmos-Reason2-8B). Each agent independently emits either `ACT` (release now) or `THINK` (keep holding) — with zero awareness of the other agents. When the orchestrator's dynamic consensus threshold is met, the release window is committed.
 
 The system is designed with three guarantees:
 - **Never miss a safe window** (late release penalised via Life-Points)
@@ -47,7 +47,7 @@ flowchart TD
         LKV["② LiveKV Store\nRedis FIFO sliding window"]
         AKV["③ ArchiveKV Retrieve\nFAISS top-K cosine RAG"]
         ORA["④ Physics Oracle\nSAM2 + MiDaS\nhard veto if unsafe"]
-        DSP["⑤ Agent Dispatch\n4× Cosmos-Reason2-8B\nblind — no mutual awareness"]
+        DSP["⑤ Agent Dispatch\n3× Cosmos-Reason2-8B\nblind — no mutual awareness"]
         SCR["⑥ Kinematic Scorer\nO(1) deterministic\nLife-Points update"]
         CTH["⑦ Dynamic Consensus\nframe-adaptive threshold\n100% → 85% → 66%"]
         TIE["⑧ Predict2.5\nTie-breaker\nonly on split vote"]
@@ -91,7 +91,7 @@ sequenceDiagram
     participant Redis as LiveKV (Redis)
     participant FAISS as ArchiveKV (FAISS)
     participant ORA as Physics Oracle
-    participant AGT as Agents (×4)
+    participant AGT as Agents (×3)
     participant SCR as Scorer
     participant GRPO as GRPO Bandit
     participant P25 as Predict2.5
@@ -178,7 +178,6 @@ flowchart LR
 | Alpha | Hyper-Conservative | 1 | full | Maximally cautious, full context |
 | Beta | Speed-Optimised | 3 | gripper | Fast decision, grip focus only |
 | Gamma | Kinematic Skeptic | 1 | velocity | Derivative signals, no appearance trust |
-| Delta | Archival Loyalist | 2 | full | Archive-first, derivative tempo |
 
 ---
 
@@ -228,7 +227,7 @@ flowchart TD
     subgraph LIVEKV["LiveKV — Redis (short-term)"]
         direction LR
         R1["frame_N-W ... frame_N\nFIFO sliding window\nkey: abee:live:{traj_id}"]
-        R2["Per-agent stride slicing\nAlpha: every frame\nBeta: every 3rd\nGamma: every frame\nDelta: every 2nd"]
+        R2["Per-agent stride slicing\nAlpha: every frame\nBeta: every 3rd\nGamma: every frame"]
         R1 --> R2
     end
 

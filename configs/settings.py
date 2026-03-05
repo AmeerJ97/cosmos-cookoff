@@ -78,7 +78,7 @@ TEMPORAL_STRIDES = [1, 3, 2]  # 1x full, 3x macro, 2x derivative-delta
 # ── Modality Mask Pool (M) ──────────────────────────────────────────────────
 MODALITY_MASKS = ["full", "gripper", "velocity"]
 
-# 4 default agents with distinct asymmetric identities
+# 3 default agents with distinct asymmetric identities (blind, independent)
 DEFAULT_AGENTS = [
     AgentIdentity(
         name="Alpha",
@@ -97,12 +97,6 @@ DEFAULT_AGENTS = [
         prompt_bias=PROMPT_BIASES[2],
         temporal_stride=1,
         modality_mask="velocity",
-    ),
-    AgentIdentity(
-        name="Delta",
-        prompt_bias=PROMPT_BIASES[3],
-        temporal_stride=2,
-        modality_mask="full",
     ),
 ]
 
