@@ -72,21 +72,62 @@ A local 4-bit inference path exists as fallback (`USE_LOCAL_MODEL=True` in `conf
 
 ## Quick start
 
-```bash
-# 1. Start Redis
-docker compose up -d redis
+### Prerequisites
 
-# 2. Set NIM key  (generate at https://build.nvidia.com)
+- Python 3.11+
+- Docker (for Redis)
+- NVIDIA GPU with 16GB+ VRAM (for local inference) or NIM API key (for cloud)
+
+### Setup
+
+```bash
+# Clone and install
+git clone https://github.com/AmeerJ97/cosmos-cookoff.git
+cd cosmos-cookoff
+pip install -r requirements.txt
+
+# Start Redis (LiveKV backing store)
+docker compose up -d redis
+```
+
+### Run with NIM API (recommended)
+
+```bash
+# Set your NIM key (generate at https://build.nvidia.com)
 export NGC_API_KEY=nvapi-YOUR-KEY
 
-# 3. Verify access
+# Verify API connectivity
 python scripts/test_api.py
 
-# 4. Run on MIMIC data (50 trajectories)
-python run_abee.py --trajectories 50
+# Run on synthetic trajectories (no dataset download needed)
+python run_abee.py --trajectories 20
 
-# 5. With live telemetry dashboard  →  http://localhost:8050
-python run_abee.py --trajectories 50 --dashboard
+# Run on real MIMIC data (requires dataset — see Dataset section)
+python run_abee.py --manifest data/manifest.json
+```
+
+### Run with local models
+
+```bash
+# Set local model path (requires downloading cosmos-reason2 weights from HuggingFace)
+export ABEE_LOCAL_MODEL_PATH=/path/to/cosmos-reason2-8b
+
+# Edit configs/settings.py: set USE_LOCAL_MODEL = True
+python run_abee.py --trajectories 20
+```
+
+### Dry-run mode (no GPU or API needed)
+
+```bash
+# Full survival game with synthetic agent decisions
+python run_abee.py --dry-run --trajectories 50
+```
+
+### Live telemetry dashboard
+
+```bash
+# Add --dashboard to any run command to launch the Plotly dashboard at http://localhost:8050
+python run_abee.py --trajectories 20 --dashboard
 ```
 
 ---
@@ -125,13 +166,33 @@ Zero premature releases across every evaluation run. The Life-Points double pena
 ## Repository structure
 
 ```
-abee_pkg/      core library — agents, memory, orchestrator, GRPO, SFT, oracle
-configs/       all tunable hyperparameters (settings.py)
-dashboard/     Plotly Dash live telemetry (Dash, port 8050)
-data/          manifest + output artefacts (results.json, sft_dataset.jsonl)
-scripts/       dataset conversion utilities
-docs/          full system diagrams and research notes
+abee_pkg/
+  orchestrator.py    asyncio game loop — frame processing, consensus, lifecycle
+  agents.py          NIM API dispatcher — payload construction, response parsing
+  local_inference.py local 4-bit inference via transformers + bitsandbytes
+  scorer.py          O(1) kinematic evaluation, Life-Points, dynamic consensus
+  grpo.py            Hyper-GRPO bandit over 36 identity combinations
+  memory.py          DualCache — Redis LiveKV + FAISS ArchiveKV
+  oracle.py          Physics oracle — SAM2 + MiDaS hard veto
+  models.py          Pydantic schemas — decisions, state, SFT records
+  sft.py             SFT dataset serializer (JSONL + OpenAI format)
+  data_loader.py     Manifest loader + synthetic data generator
+configs/
+  settings.py        all tunable hyperparameters in one place
+dashboard/
+  app.py             Plotly Dash real-time telemetry (3D UMAP, life-points, votes)
+data/                manifest, frames, results, FAISS index (gitignored)
+scripts/
+  convert_mimic_to_abee.py   MIMIC dataset → ABEE manifest converter
+  test_api.py                NIM API connectivity test
+docs/
+  Architecture docs/         system design, training pipeline, sensor proposals
+  research/                  VLM training, Gaussian splatting, sensor research
+  tracker/                   training log, pricing, research index
+run_abee.py          CLI entry point
+docker-compose.yml   Redis container
+requirements.txt     Python dependencies
 ```
 
-Full system diagrams (8 Mermaid diagrams — sequence, state machine, bandit loop, SFT pipeline):  
+Full system diagrams (8 Mermaid diagrams — sequence, state machine, bandit loop, SFT pipeline):
 [docs/Architecture docs/ABEE System Documentation.md](docs/Architecture%20docs/ABEE%20System%20Documentation.md)
