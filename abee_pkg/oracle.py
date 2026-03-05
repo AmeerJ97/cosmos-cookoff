@@ -76,12 +76,14 @@ class SAM2Oracle:
         self._prev_masks: dict[str, np.ndarray] = {}
         self._prev_centroids: dict[str, np.ndarray] = {}
         self._initialized = False
+        self._load_failed = False  # set on first failure; never retry
 
     def _load(self):
-        if self._predictor is not None:
+        if self._predictor is not None or self._load_failed:
             return
         if not SAM2_CHECKPOINT.exists():
             log.warning("SAM2 checkpoint not found at %s — oracle disabled", SAM2_CHECKPOINT)
+            self._load_failed = True
             return
         try:
             from sam2.build_sam import build_sam2
@@ -91,6 +93,7 @@ class SAM2Oracle:
             log.info("SAM2 oracle loaded")
         except Exception as e:
             log.warning("SAM2 failed to load: %s", e)
+            self._load_failed = True
 
     def reset(self):
         """Call between trajectories."""
@@ -230,9 +233,10 @@ class DepthOracle:
 
     def __init__(self):
         self._model = None
+        self._load_failed = False  # set on first failure; never retry
 
     def _load(self):
-        if self._model is not None:
+        if self._model is not None or self._load_failed:
             return
         try:
             import torch
@@ -243,6 +247,7 @@ class DepthOracle:
             log.info("Depth oracle (MiDaS small) loaded")
         except Exception as e:
             log.warning("Depth oracle failed to load: %s", e)
+            self._load_failed = True
 
     def estimate(self, image_rgb: np.ndarray) -> dict:
         """Returns depth stats: mean, std, min_clearance."""

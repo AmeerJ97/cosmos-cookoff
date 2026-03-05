@@ -325,9 +325,11 @@ class Orchestrator:
                 )
 
             # ── Step 9: Tie-breaker for split votes ──────────────────────
+            # Only invoke if tiebreaker vote could actually push us over threshold
             if (verdict.act_count > 0
                     and verdict.act_count < verdict.n_alive
-                    and not verdict.consensus_act):
+                    and not verdict.consensus_act
+                    and verdict.act_count + 1 >= verdict.consensus_threshold):
                 tb = await invoke_predict_tiebreaker(session, frame, responses)
                 if tb == "ACT":
                     log.info("  Predict2.5 tiebreaker -> ACT")
