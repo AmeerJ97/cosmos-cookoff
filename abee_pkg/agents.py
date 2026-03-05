@@ -220,8 +220,13 @@ async def dispatch_agent(
         # Parse response
         think_trace, decision, error = _parse_response(raw_output)
 
+        # Debug: log raw output if confidence is suspiciously 0.0 or parse failed
+        if decision is not None and decision.confidence == 0.0:
+            log.info("Agent %s conf=0.0 raw: %.300s", agent.name, raw_output)
+        elif decision is None:
+            log.warning("Agent %s parse fail: %s | raw: %s", agent.name, error, raw_output[:300])
+
         if decision is None and attempt < MAX_RETRIES:
-            log.warning("Agent %s parse fail attempt %d: %s", agent.name, attempt, error)
             payload["temperature"] = min(0.5, payload["temperature"] + 0.1)
             continue
 

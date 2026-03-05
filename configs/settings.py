@@ -17,8 +17,8 @@ NIM_MODEL = "nvidia/cosmos-reason2-8b"
 NIM_PREDICT_MODEL = "nvidia/cosmos-predict2-14b"  # conditional tie-breaker
 NIM_EMBED_MODEL = "nvidia/cosmos-embed-1.0"       # 768-dim embeddings
 
-# Active model — swap to cosmos-reason2-8b once activated at build.nvidia.com
-NIM_ACTIVE_MODEL = "meta/llama-3.2-11b-vision-instruct"
+# Active model — enterprise NIM (cosmos-reason2-8b)
+NIM_ACTIVE_MODEL = "nvidia/cosmos-reason2-8b"
 
 # NGC API key is read from ~/.ngc/config or env NGC_API_KEY
 import os
