@@ -81,7 +81,7 @@ The SFT dataset is built through a multi-model pipeline rather than single-model
 3. **Nemotron reasoning enrichment** rewrites surviving traces into dense step-by-step rationales, improving downstream SFT signal quality.
 4. **Multi-modal synthetic overlays** augment frames with lighting, occlusion, and sensor-noise variations to reduce domain shift.
 
-New agents undergo a **spectating burn-in** period: they observe live frames and consensus outcomes without contributing decisions, accumulating LiveKV context before going live. This conditions conservative initial behavior without explicit threshold tuning.
+New agents undergo a **spectating burn-in** period: they observe only failure cases — fatal early ACTs and agent deaths — before making live decisions. No success examples are shown. Correct behavior must be discovered through survival pressure alone.
 
 ### Vertex AI — serverless CustomJob deployment
 
@@ -217,13 +217,13 @@ scripts/
 vertex_training/
   Dockerfile                 production training container
 docs/
-  Architecture docs/         system design, training pipeline, sensor proposals
-  research/                  VLM training, Gaussian splatting, sensor research
-  tracker/                   training log, pricing, research index
+  ARCHITECTURE.md            system design — components, data flow, Mermaid diagram
+  TRAINING.md                training pipeline — data factory, QLoRA config, runs
+  RESULTS.md                 evaluation results — safety guarantees, GRPO convergence
+  COSMOS_MODELS.md           Cosmos model usage — prompt structure, inference modes
 run_clasp.py          CLI entry point
 docker-compose.yml   Redis container
 requirements.txt     Python dependencies
 ```
 
-Full system diagrams (8 Mermaid diagrams — sequence, state machine, bandit loop, SFT pipeline):
-[docs/Architecture docs/CLASP System Documentation.md](docs/Architecture%20docs/CLASP%20System%20Documentation.md)
+Full architecture details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Training pipeline: [docs/TRAINING.md](docs/TRAINING.md)
