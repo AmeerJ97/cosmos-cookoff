@@ -11,7 +11,18 @@
 - **Research - General/**, **REsearch - Vision/**, **Other ML research/** — Background research.
 - **resources/** — Models, tooling inventory, external references.
 
-## Architecture Docs (docs/Architecture docs/)
+## Architecture Docs
+
+| File | Description |
+|------|-------------|
+| [ABEE System Documentation.md](ABEE%20System%20Documentation.md) | **Complete reference** — 8 Mermaid diagrams covering every subsystem |
+| [System Architecture - Adversarial Blind Epistemic Ensemble.md](System%20Architecture%20-%20Adversarial%20Blind%20Epistemic%20Ensemble.md) | Detailed prose architecture (958 lines) |
+| [Training Pipeline Architecture.md](Training%20Pipeline%20Architecture.md) | SFT → GRPO training plan |
+| [PROPOSAL - Multi-Modal 3D Scene Fusion & Physics Oracle Upgrade.md](PROPOSAL%20-%20Multi-Modal%203D%20Scene%20Fusion%20%26%20Physics%20Oracle%20Upgrade.md) | Phase 2 sensor fusion proposal |
+
+---
+
+## Architecture Docs (docs/Architecture docs/) (docs/Architecture docs/)
 
 | Document | Purpose | Status |
 |---|---|---|
