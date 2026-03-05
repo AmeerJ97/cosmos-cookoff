@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Virtual envs
+.venv/
+venv/
+env/
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# FAISS / runtime cache
+data/archive_kv.index
+data/archive_kv.index.meta.json
+data/*.jsonl
+data/results.json
+
+# Model weights (too large)
+models/
+*.gguf
+*.safetensors
+*.bin
+
+# Secrets
+.ngc/
+*.key
+ngc_credentials.json
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Large dataset files — keep directory skeleton, not content
+data/frames/
+data/manifest.json
+datasets/
+
+# Obsidian workspace (local tool only)
+.obsidian/
+
+# Docker volumes
+redis-data/
