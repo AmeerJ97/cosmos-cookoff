@@ -29,4 +29,4 @@ COPY data/sft_dataset.openai.jsonl sft_dataset.openai.jsonl
 
 # Default: run QLoRA training
 ENTRYPOINT ["python3", "train_qlora.py"]
-CMD ["--data", "sft_dataset.openai.jsonl", "--output", "/gcs/output/abee-lora-checkpoint"]
+CMD ["--data", "sft_dataset.openai.jsonl", "--output", "/gcs/output/clasp-lora-checkpoint"]

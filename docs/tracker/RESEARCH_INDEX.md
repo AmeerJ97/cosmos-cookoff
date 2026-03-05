@@ -1,6 +1,6 @@
-# ABEE Research Index
+# CLASP Research Index
 
-Master index of all research documents, papers, and sources gathered for the ABEE project.
+Master index of all research documents, papers, and sources gathered for the CLASP project.
 
 ## Research Documents (docs/research/)
 
@@ -16,7 +16,7 @@ Master index of all research documents, papers, and sources gathered for the ABE
 ## Key Papers
 
 ### Gaussian Splatting for Robotics
-- **POGS** (ICRA 2025, Berkeley) — 3DGS handoff tracking, 12 consecutive handoffs. Most relevant to ABEE. [arXiv:2503.05189](https://arxiv.org/abs/2503.05189)
+- **POGS** (ICRA 2025, Berkeley) — 3DGS handoff tracking, 12 consecutive handoffs. Most relevant to CLASP. [arXiv:2503.05189](https://arxiv.org/abs/2503.05189)
 - **RoboSplat** (RSS 2025) — One-shot manipulation via 3DGS. 87.8% vs 57.2% with 2D. [arXiv:2504.13175](https://arxiv.org/abs/2504.13175)
 - **GaussianGrasper** — Language-guided grasping with 3DGS. [arXiv:2403.09637](https://arxiv.org/abs/2403.09637)
 - **GaussianVLM** — 40K Gaussians → 132 VLM tokens. [arXiv:2507.00886](https://arxiv.org/abs/2507.00886)

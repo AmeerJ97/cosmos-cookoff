@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-ABEE Vertex AI Training Submission — Serverless CustomJob
+CLASP Vertex AI Training Submission — Serverless CustomJob
 
 Packages the QLoRA training job and submits it to Vertex AI
 using Google Cloud's serverless training infrastructure.
@@ -20,7 +20,7 @@ import os
 from pathlib import Path
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
-log = logging.getLogger("abee.vertex")
+log = logging.getLogger("clasp.vertex")
 
 # Default training container image (NVIDIA GPU-optimized)
 TRAIN_IMAGE = "us-docker.pkg.dev/vertex-ai/training/pytorch-gpu.2-4:latest"
@@ -30,7 +30,7 @@ def create_custom_job(
     project: str,
     region: str,
     staging_bucket: str,
-    display_name: str = "abee-qlora-cosmos-reason2",
+    display_name: str = "clasp-qlora-cosmos-reason2",
     machine_type: str = "a2-highgpu-1g",  # 1x A100 40GB
     accelerator_type: str = "NVIDIA_TESLA_A100",
     accelerator_count: int = 1,
@@ -67,7 +67,7 @@ def create_custom_job(
         "--max-seq-len", str(max_seq_len),
         "--batch-size", str(batch_size),
         "--grad-accum", str(grad_accum),
-        "--output", "/gcs/output/abee-lora-checkpoint",
+        "--output", "/gcs/output/clasp-lora-checkpoint",
     ]
 
     if sft_data_gcs:
@@ -96,7 +96,7 @@ def create_custom_job(
     job = aiplatform.CustomJob(
         display_name=display_name,
         worker_pool_specs=worker_pool_specs,
-        base_output_dir=f"{staging_bucket}/abee-training-output",
+        base_output_dir=f"{staging_bucket}/clasp-training-output",
     )
 
     log.info("Submitting Vertex AI CustomJob: %s", display_name)
@@ -120,7 +120,7 @@ def create_from_local_container(
     region: str,
     staging_bucket: str,
     image_uri: str,
-    display_name: str = "abee-qlora-cosmos-reason2-custom",
+    display_name: str = "clasp-qlora-cosmos-reason2-custom",
     machine_type: str = "a2-highgpu-1g",
     accelerator_type: str = "NVIDIA_TESLA_A100",
     accelerator_count: int = 1,
@@ -146,7 +146,7 @@ def create_from_local_container(
         machine_type=machine_type,
         accelerator_type=accelerator_type,
         accelerator_count=accelerator_count,
-        base_output_dir=f"{staging_bucket}/abee-training-output",
+        base_output_dir=f"{staging_bucket}/clasp-training-output",
         service_account=None,
         sync=False,
     )
@@ -156,7 +156,7 @@ def create_from_local_container(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="ABEE Vertex AI Training Submission")
+    parser = argparse.ArgumentParser(description="CLASP Vertex AI Training Submission")
     parser.add_argument("--project", required=True, help="GCP project ID")
     parser.add_argument("--region", default="us-central1", help="GCP region")
     parser.add_argument("--staging-bucket", required=True,

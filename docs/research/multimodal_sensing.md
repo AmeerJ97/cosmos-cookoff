@@ -2,7 +2,7 @@
 ## IR, WiFi CSI, LiDAR, and Sensor Fusion Research
 
 **Document Date:** March 5, 2026
-**Research Context:** ABEE system — safe human-robot object handoff release window prediction
+**Research Context:** CLASP system — safe human-robot object handoff release window prediction
 
 ---
 
@@ -34,7 +34,7 @@
    - 5.5 Thermal-Visible-LiDAR Fusion Specifically
 6. [Value Analysis Per Modality](#5-value-analysis-per-modality)
 7. [Handoff-Specific Findings](#6-handoff-specific-findings)
-8. [Recommended Integration Architecture for ABEE](#7-recommended-integration-architecture-for-abee)
+8. [Recommended Integration Architecture for CLASP](#7-recommended-integration-architecture-for-clasp)
 9. [Sources and References](#sources-and-references)
 10. [Research Methodology](#research-methodology)
 
@@ -42,7 +42,7 @@
 
 ## Executive Summary
 
-This document synthesizes research across infrared sensing, WiFi CSI-based 3D perception, LiDAR, and multi-modal fusion for the specific problem of predicting safe human-robot object handoff release windows — as required by the ABEE system.
+This document synthesizes research across infrared sensing, WiFi CSI-based 3D perception, LiDAR, and multi-modal fusion for the specific problem of predicting safe human-robot object handoff release windows — as required by the CLASP system.
 
 **Key findings:**
 
@@ -54,7 +54,7 @@ This document synthesizes research across infrared sensing, WiFi CSI-based 3D pe
 
 **Multi-modal fusion** into VLMs is an active research area. The dominant strategy for feeding thermal+RGB+depth into a VLM is early/mid fusion through projection layers: encode each modality separately, project to token embeddings, concatenate before the LLM backbone. Thermal images rendered as false-color heatmaps can be fed directly to existing VLMs (Cosmos-Reason2 accepts image tokens) without model modifications. LiDAR point clouds require either bird's-eye-view projection or depth image rendering for VLM consumption.
 
-**Recommendation priority for ABEE:** IR thermal camera (immediate value, direct handoff signal), depth camera upgrade (Orbbec Femto Bolt replaces/supplements existing depth), WiFi CSI as supplementary coarse-pose sensor (longer integration timeline, specialized hardware needed).
+**Recommendation priority for CLASP:** IR thermal camera (immediate value, direct handoff signal), depth camera upgrade (Orbbec Femto Bolt replaces/supplements existing depth), WiFi CSI as supplementary coarse-pose sensor (longer integration timeline, specialized hardware needed).
 
 ---
 
@@ -109,7 +109,7 @@ These are distinct from thermal sensing — they actively project near-IR light 
 
 ### 1.3 Thermal Signatures and Grip/Release Detection
 
-This is the highest-value research finding for ABEE. Multiple independent sources confirm measurable thermal dynamics during human grip that could signal imminent release.
+This is the highest-value research finding for CLASP. Multiple independent sources confirm measurable thermal dynamics during human grip that could signal imminent release.
 
 **Mechanism 1 — Conductive heat transfer:**
 When human skin contacts an object, heat conducts from skin (typically 32-36C) to the object surface. The contact area becomes thermally elevated relative to the object's ambient temperature. This imprint is detectable by a co-located thermal camera.
@@ -118,7 +118,7 @@ When human skin contacts an object, heat conducts from skin (typically 32-36C) t
 - The contact imprint persists for several seconds after release, providing a brief temporal window
 - Grip area size and temperature gradient correlate with grip force and contact duration
 
-**Mechanism 2 — Grip-force thermal gradient dynamics (directly relevant to ABEE):**
+**Mechanism 2 — Grip-force thermal gradient dynamics (directly relevant to CLASP):**
 A 2025 study by Piwek et al. (Advanced Engineering Materials) measured temperature at gripper finger contacts during repeated handling cycles with hot objects. Key observation:
 
 > "The finger temperature shows a step-like profile, where the temperature rises above the contact time. After the release of the object, there is a temperature drop followed by a further rise in temperature... The gradient peaks when the gripper finger is in contact with the hot object."
@@ -137,7 +137,7 @@ As the human grips an object preparing to hand it off, the object surface in con
 - Frame rate of 9-16Hz adequate for slowly evolving grip state; 30Hz preferred
 
 **Relevant 2024-2025 prosthetics research:**
-Frontiers in Neuroscience (2024) demonstrated a hybrid sensory feedback system where thermal nociceptive warning enabled grip force regulation in prosthetic hands, achieving 94.3% nociceptive warning perception. The authors specifically show IR sensing enabling feedback control of grip force — directly analogous to the ABEE use case.
+Frontiers in Neuroscience (2024) demonstrated a hybrid sensory feedback system where thermal nociceptive warning enabled grip force regulation in prosthetic hands, achieving 94.3% nociceptive warning perception. The authors specifically show IR sensing enabling feedback control of grip force — directly analogous to the CLASP use case.
 
 A 2024 Advanced Materials study (Yang et al.) developed ML-enhanced ionic skin that achieved simultaneous temperature and pressure sensing with <7% prediction error for robotic gripper feedback — demonstrating the feasibility of temperature + pressure multimodal grip state estimation.
 
@@ -150,7 +150,7 @@ A 2024 Advanced Materials study (Yang et al.) developed ML-enhanced ionic skin t
 - Features: Radiometric JPEG output (temperature data embedded in image), FLIR Prism ISP
 - Price: ~$239 (sample quantity)
 - ITAR-free: Yes — no export restrictions, simplifies integration
-- Best for: ABEE primary IR sensor, dual-mode thermal+RGB from single capture
+- Best for: CLASP primary IR sensor, dual-mode thermal+RGB from single capture
 
 **FLIR Lepton 3.5 (standalone module)**
 - 160x120 LWIR, 57-degree FOV, LWIR 8-14 micron
@@ -177,7 +177,7 @@ A 2024 Advanced Materials study (Yang et al.) developed ML-enhanced ionic skin t
 **FLIR Boson / Tau 2 (industrial grade)**
 - 320x256 or 640x512 LWIR, 14-bit radiometric output
 - Price: $1,500-4,000
-- Overkill for most ABEE scenarios but relevant for high-precision grip thermal mapping
+- Overkill for most CLASP scenarios but relevant for high-precision grip thermal mapping
 
 **Relevant comparison table:**
 
@@ -202,7 +202,7 @@ A 2024 Advanced Materials study (Yang et al.) developed ML-enhanced ionic skin t
 
 5. **Thermal-RGB fusion:** FLIR's MSX technology (embedded in Lepton XDS) overlays RGB edge details onto the thermal image in real time. For downstream processing, a separate thermal channel as a false-color image can be rendered as a 3-channel "thermal image" and passed to any RGB-compatible vision pipeline.
 
-**Integration with existing ABEE Oracle:**
+**Integration with existing CLASP Oracle:**
 The Physics Oracle already runs SAM2 for segmentation. Thermal can feed directly as an additional channel: segment the hand region in thermal, extract temperature statistics over the segmented mask, and pass grip-temperature features as additional oracle inputs. This requires no new segmentation model — SAM2 operates on the RGB channel; thermal statistics are extracted over the existing SAM2 mask.
 
 **Latency:** MLX90640 at 16Hz = 62.5ms per frame. FLIR Lepton at 8.7Hz = 115ms. For a system already bottlenecked by SAM2 + MiDaS + Cosmos-Reason2, thermal latency is not the limiting factor.
@@ -296,7 +296,7 @@ For an 802.11n/ac link with N_tx x N_rx antennas and N_sc subcarriers:
 - **Nexmon CSI** (GitHub: seemoo-lab): Firmware patch + tools for Broadcom hardware
 - **ESP32-CSI-Tool**: Achieves 92.43% HAR accuracy at 232ms inference on ESP32-S3
 
-**Recommended setup for ABEE WiFi sensing:**
+**Recommended setup for CLASP WiFi sensing:**
 1. ESP32-S3 (transmitter, $8) + Intel IWL5300 or AX200 in Linux laptop/mini-PC (receiver)
 2. Or: Two ESP32-S3 units (one TX, one RX) for fully self-contained setup
 3. CSIKit for parsing; feed into existing Python pipeline
@@ -314,14 +314,14 @@ IEEE Std 802.11bf-2025 was published September 26, 2025. This is the first offic
 - Sub-7GHz sensing: presence detection, activity recognition, room-scale
 - 60GHz sensing: 3D vision, gesture recognition at fine granularity (~5mm)
 
-**Implications for ABEE:**
+**Implications for CLASP:**
 - 802.11bf hardware (WiFi 7 with sensing support) will become commercially available in 2026-2027
 - 60GHz sensing at 5mm resolution is genuinely useful for handoff scenarios — can detect hand position and large gestures
 - Not available today in consumer hardware; current CSI sensing uses 802.11n/ac hardware outside the standard
 
 ### 2.6 Limitations for Handoff Scenarios
 
-**What WiFi CSI can do for ABEE:**
+**What WiFi CSI can do for CLASP:**
 - Detect person approaching the robot (room-scale, ~30cm accuracy)
 - Recognize coarse activity class (reaching, standing, handing) with >90% accuracy
 - Operate through walls, occlusion, low lighting
@@ -334,7 +334,7 @@ IEEE Std 802.11bf-2025 was published September 26, 2025. This is the first offic
 - Operate reliably in environments with many moving people (multipath interference)
 - Achieve sub-second latency for hard real-time control (typical pipeline: 100-500ms)
 
-**Verdict for ABEE:** WiFi CSI is a valuable coarse-level environmental sensor providing body presence and approach detection. It is not useful as a primary handoff release signal. As a secondary modality providing "human is actively reaching toward robot" confirmation, it adds value without replacing RGB/depth/thermal.
+**Verdict for CLASP:** WiFi CSI is a valuable coarse-level environmental sensor providing body presence and approach detection. It is not useful as a primary handoff release signal. As a secondary modality providing "human is actively reaching toward robot" confirmation, it adds value without replacing RGB/depth/thermal.
 
 ---
 
@@ -368,7 +368,7 @@ IEEE Std 802.11bf-2025 was published September 26, 2025. This is the first offic
 - SDK includes Azure Kinect Sensor SDK wrapper for drop-in compatibility
 - Showcased at NVIDIA GTC 2024 as primary Kinect successor
 - Price: ~$400
-- Best for: primary depth camera in ABEE sensor stack
+- Best for: primary depth camera in CLASP sensor stack
 
 **Orbbec Femto Mega:**
 - Similar to Femto Bolt with Ethernet connectivity option
@@ -395,13 +395,13 @@ For a desktop manipulation task at 0.2-1.5m range, the comparison is essentially
 - D415 (structured light) outperforms in sub-0.5m range
 - All achieve <5mm error at 0.3-0.5m in controlled settings
 
-**Structured Light vs ToF summary for ABEE:**
+**Structured Light vs ToF summary for CLASP:**
 - **Structured Light (D415, D435, similar):** Best for <0.5m, highest spatial detail for finger/grip geometry, can see around hand to object contact zone. Recommended for close-up grip zone camera.
 - **ToF (Femto Bolt, L515 if available):** Better for full-scene depth map, more robust to ambient IR, wider depth range. Recommended as primary scene depth camera.
 
 ### 3.3 Current Recommended Hardware
 
-**For ABEE sensor stack, LiDAR/depth recommendation:**
+**For CLASP sensor stack, LiDAR/depth recommendation:**
 
 1. **Primary scene depth:** Orbbec Femto Bolt (~$400) — replaces Azure Kinect DK, wide FOV, ToF depth, compatible with existing Azure Kinect SDK
 2. **Close-range grip zone:** Intel RealSense D435/D435i (~$170-220) — structured light, excellent at 15-50cm, includes RGB+IR stereo+IMU
@@ -446,7 +446,7 @@ The paper describes exactly the layered approach:
 3. Segment heat-source features to identify thermal targets
 4. Produce a 3D map enriched with geometry, texture, and temperature semantics as distinct layers
 
-**For ABEE, a practical layered feed would be:**
+**For CLASP, a practical layered feed would be:**
 
 ```
 Layer 0 (Base):    RGB image (standard camera, 1920x1080 @ 30fps)
@@ -480,17 +480,17 @@ Limitation: VLM was not trained on thermal-as-color images; may misinterpret the
 Create a composite image with RGB | Depth | Thermal as three panels. Cosmos-Reason2 can be prompted: "Left panel is RGB, center is depth map (closer=brighter), right panel is thermal (warmer=red)." No model modification. Works today.
 
 **Strategy C — Additional input channel projection:**
-Add a lightweight linear projection for the extra channels (depth, thermal), fuse with existing vision tokens before LLM. Requires fine-tuning. Future-looking for ABEE's SFT dataset pipeline.
+Add a lightweight linear projection for the extra channels (depth, thermal), fuse with existing vision tokens before LLM. Requires fine-tuning. Future-looking for CLASP's SFT dataset pipeline.
 
 **Strategy D — Cross-modal attention fusion (research-grade):**
 Talk2PC-style: fuse modalities through prompt-guided cross-attention. Best performance but requires significant architectural work.
 
-**Recommendation for ABEE Phase 1:** Use Strategy B (side-by-side panels). Compose a 3-panel image at each frame:
+**Recommendation for CLASP Phase 1:** Use Strategy B (side-by-side panels). Compose a 3-panel image at each frame:
 - Panel left: RGB
 - Panel center: Depth rendered in turbo colormap
 - Panel right: Thermal rendered in inferno colormap
 
-The ABEE agents receive this as a single image input with a system prompt explaining the panel layout. No model modification. Immediately compatible with Cosmos-Reason2-8B as-is.
+The CLASP agents receive this as a single image input with a system prompt explaining the panel layout. No model modification. Immediately compatible with Cosmos-Reason2-8B as-is.
 
 **ThermEval benchmark (arXiv 2602.14989, Feb 2026):**
 > "Vision language models achieve strong performance on RGB imagery but do not generalize to thermal images... thermal images encode physical temperature rather than color or texture."
@@ -522,7 +522,7 @@ The 2026 arXiv paper (MULTIMODAL SIGNAL PROCESSING FOR THERMAL-VISIBLE-LIDAR FUS
 3. **Semantic segmentation:** Segment fused image to identify thermal objects (humans, heat sources)
 4. **3D semantic map:** Assign temperature-semantic labels to LiDAR points
 
-For ABEE specifically, step 3 can be replaced by SAM2 (already in the Oracle), and the output is exactly what the Physics Oracle needs: a depth-registered, temperature-annotated view of the handoff zone.
+For CLASP specifically, step 3 can be replaced by SAM2 (already in the Oracle), and the output is exactly what the Physics Oracle needs: a depth-registered, temperature-annotated view of the handoff zone.
 
 ---
 
@@ -550,7 +550,7 @@ Hardware cost: MLX90640 at $60 for prototyping; Lepton XDS at $239 for productio
 
 Integration complexity: Lepton XDS via USB is plug-and-play. FLIR provides Python SDK. MSX-fused images are standard RGB and immediately usable by all existing pipeline components.
 
-Relevance to handoff safety: Direct — thermal dynamics during grip and release provide leading indicators of imminent handoff. This is the modality most likely to enable detection of "human grip loosening" 500-2000ms before actual object release, which is exactly the safety margin ABEE needs.
+Relevance to handoff safety: Direct — thermal dynamics during grip and release provide leading indicators of imminent handoff. This is the modality most likely to enable detection of "human grip loosening" 500-2000ms before actual object release, which is exactly the safety margin CLASP needs.
 
 **Near-IR Depth (ToF or Structured Light) — Strongly Recommended**
 
@@ -578,7 +578,7 @@ Relevance to handoff safety: Low-to-medium as a primary sensor. Medium as a supp
 
 **Recommendation:** Implement WiFi CSI only after thermal and depth are integrated and working. If pursued, use ESP32 (cheap, Python library available) and focus specifically on "approach vs stationary vs withdraw" three-class detection, not fine pose estimation.
 
-**Spinning LiDAR (RPLiDAR A/S series) — Not Recommended for ABEE**
+**Spinning LiDAR (RPLiDAR A/S series) — Not Recommended for CLASP**
 
 Information gain: Near-zero for a desktop manipulation scenario. Provides 2D scan in horizontal plane; unhelpful for 3D grip geometry, hand pose, or object orientation.
 
@@ -593,17 +593,17 @@ The RPLiDAR family is excellent hardware — for SLAM-based mobile robot navigat
 **Early Detection of Human Handover Intentions (ScienceDirect, 2025):**
 Compared EEG, gaze, and hand-motion signals for classifying handover-intended vs non-handover motions. Key finding: **gaze signals are the earliest and most accurate** for classifying handover intentions. Hand-motion signals lag gaze by 200-500ms. EEG provides earliest physiological signal but is impractical in non-laboratory settings.
 
-**Implication for ABEE:** Gaze/eye-tracking could be a high-value addition. Cheap eye trackers (Tobii 4C ~$150, Pupil Labs ~$200) provide gaze direction that may be the best single predictor of imminent handoff initiation.
+**Implication for CLASP:** Gaze/eye-tracking could be a high-value addition. Cheap eye trackers (Tobii 4C ~$150, Pupil Labs ~$200) provide gaze direction that may be the best single predictor of imminent handoff initiation.
 
 **Multimodal Learning-Based Proactive Handover Intention Prediction (Advanced Intelligent Systems, 2024):**
-Used wearable data gloves + augmented reality system; 99.6% accuracy on 12 handover intent classes. Finding: wearable sensing outperforms vision alone but requires the human to wear instrumentation — impractical for ABEE's scenario where the human is not instrumented.
+Used wearable data gloves + augmented reality system; 99.6% accuracy on 12 handover intent classes. Finding: wearable sensing outperforms vision alone but requires the human to wear instrumentation — impractical for CLASP's scenario where the human is not instrumented.
 
 **Novel Human Intention Prediction via Fuzzy Rules through Wearable Sensing (PMC, MDPI):**
 Fuzzy rule-based prediction using wrist-worn sensors. Highly accurate but same limitation: requires hardware on the human.
 
 **Synthesis for uninstrumented (no wearables) handoff:**
 Without wearables on the human, the available modalities are:
-1. RGB + depth (current ABEE) — visual pose, hand shape, trajectory
+1. RGB + depth (current CLASP) — visual pose, hand shape, trajectory
 2. Thermal IR (new) — grip contact, thermal dynamics, pre-release cooling
 3. Gaze (potential addition) — earliest intent signal
 4. WiFi CSI — coarse approach/activity detection
@@ -626,11 +626,11 @@ T-0ms:    Object released — contact imprint dissipates; object thermal signatu
 T+500ms:  Residual thermal imprint on object visible for ~3-8 seconds
 ```
 
-The window T-500ms to T-0ms is the critical ABEE detection window. Thermal sensing provides a direct physical proxy for grip state in this window that RGB cannot provide.
+The window T-500ms to T-0ms is the critical CLASP detection window. Thermal sensing provides a direct physical proxy for grip state in this window that RGB cannot provide.
 
 ---
 
-## 7. Recommended Integration Architecture for ABEE
+## 7. Recommended Integration Architecture for CLASP
 
 ### Phase 1 (Immediate, ~1-2 weeks):
 
@@ -776,5 +776,5 @@ Current pipeline (SAM2 + MiDaS + Cosmos-Reason2-8B 4-bit) already uses most VRAM
 - Some commercial WiFi sensing vendor claims suggest sub-centimeter gesture detection at standard 2.4GHz; this conflicts with published physics (12.5cm wavelength limit) and CVPR 2024 results (91-125mm joint error). The physics limits are authoritative; vendor claims likely refer to very constrained gesture classification in fixed setups, not general 3D sensing.
 
 **Information gaps:**
-- No direct study found on thermal prediction of grip release timing in uninstrumented human-robot handoff scenarios — this is a genuine research gap. ABEE could be the first system to exploit this signal.
+- No direct study found on thermal prediction of grip release timing in uninstrumented human-robot handoff scenarios — this is a genuine research gap. CLASP could be the first system to exploit this signal.
 - 802.11bf-enabled hardware products not yet on market as of March 2026; 60GHz gesture sensing capabilities are standard-defined but not empirically validated in robotics contexts.

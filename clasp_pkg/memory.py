@@ -1,5 +1,5 @@
 """
-ABEE Dual-Cache Memory System
+CLASP Dual-Cache Memory System
 - LiveKV: Redis FIFO sliding window (temporal, chronological)
 - ArchiveKV: FAISS vector index (semantic RAG retrieval)
 """
@@ -16,7 +16,7 @@ from configs.settings import (
     FAISS_DIM, FAISS_TOP_K, FAISS_INDEX_PATH, BURN_IN_THRESHOLD,
 )
 
-log = logging.getLogger("abee.memory")
+log = logging.getLogger("clasp.memory")
 
 
 # ── LiveKV (Redis FIFO) ─────────────────────────────────────────────────────

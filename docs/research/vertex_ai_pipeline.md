@@ -1,5 +1,5 @@
 # Vertex AI VLM Fine-Tuning Pipeline: Research & Implementation Guide
-## For ABEE Project — NVIDIA Cosmos-Reason2-8B on Google Cloud Vertex AI
+## For CLASP Project — NVIDIA Cosmos-Reason2-8B on Google Cloud Vertex AI
 
 **Research Date:** 2026-03-05
 **Author:** Research synthesis via Claude Code
@@ -19,7 +19,7 @@
 8. [NVIDIA NIM + Vertex AI Integration](#nvidia-nim--vertex-ai-integration)
 9. [Cost Optimization Strategies](#cost-optimization-strategies)
 10. [Cosmos-Reason2-8B Specific Considerations](#cosmos-reason2-8b-specific-considerations)
-11. [ABEE Project Recommended Architecture](#abee-project-recommended-architecture)
+11. [CLASP Project Recommended Architecture](#clasp-project-recommended-architecture)
 12. [Implementation Quickstart](#implementation-quickstart)
 13. [Known Limitations and Gotchas](#known-limitations-and-gotchas)
 14. [Sources and References](#sources-and-references)
@@ -37,7 +37,7 @@ Key findings:
 - An A100 40GB single GPU job costs ~$3.67/hr on-demand; A100 80GB (a2-ultragpu) runs ~$5.50/hr; H100 SXM is ~$6–$8/hr. Spot discounts run 60–91% off but apply to preemptible workloads only.
 - Dynamic Workload Scheduler (DWS) with `FLEX_START` is the recommended cost path for training jobs that can tolerate queuing (not immediate-start).
 - NVIDIA NIM has limited native Vertex AI support (one NeMo Retriever model confirmed). For Cosmos-Reason2 inference, deploy with vLLM on Vertex AI Endpoints using GPU machines.
-- The ABEE project's SFT dataset output (JSONL conversation format) maps directly to what Vertex AI custom training containers can consume from GCS.
+- The CLASP project's SFT dataset output (JSONL conversation format) maps directly to what Vertex AI custom training containers can consume from GCS.
 
 ---
 
@@ -51,7 +51,7 @@ Vertex AI provides two training pathways:
 - **Data format:** JSONL uploaded to GCS
 - **Not applicable** to Cosmos-Reason2 — model is not in this catalog
 
-### Pathway 2: Custom Training Jobs (the correct path for ABEE)
+### Pathway 2: Custom Training Jobs (the correct path for CLASP)
 - Submit a **Custom Job** with a Docker container containing your training code
 - Full control over model, framework (PyTorch, NeMo, HuggingFace TRL), dataset loading
 - GPU/TPU machine selection with any accelerator type
@@ -152,11 +152,11 @@ RUN pip install --no-cache-dir \
 RUN git clone https://github.com/nvidia-cosmos/cosmos-reason2.git /workspace/cosmos-reason2
 
 # Copy your custom training entry point
-COPY train_abee.py /workspace/train_abee.py
+COPY train_clasp.py /workspace/train_clasp.py
 
 ENV PYTHONPATH="/workspace/cosmos-reason2:${PYTHONPATH}"
 
-ENTRYPOINT ["python", "/workspace/train_abee.py"]
+ENTRYPOINT ["python", "/workspace/train_clasp.py"]
 ```
 
 #### Option B: Use HuggingFace PyTorch DLC (Simpler)
@@ -197,7 +197,7 @@ docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/${IMAGE_NAME}:${IMAGE
 Your training script must handle Vertex AI environment variables:
 
 ```python
-# train_abee.py — Vertex AI training entry point
+# train_clasp.py — Vertex AI training entry point
 
 import os
 import json
@@ -344,26 +344,26 @@ if __name__ == "__main__":
 
 ## SFT Dataset Pipeline: Format and GCS Layout
 
-### ABEE SFT Dataset Format (JSONL)
+### CLASP SFT Dataset Format (JSONL)
 
-The ABEE system generates SFT samples from its curated game episodes. Each sample should be one JSON object per line, in the multi-turn conversation format compatible with Qwen3-VL / Cosmos-Reason2:
+The CLASP system generates SFT samples from its curated game episodes. Each sample should be one JSON object per line, in the multi-turn conversation format compatible with Qwen3-VL / Cosmos-Reason2:
 
 ```jsonl
-{"id": "abee_ep001_frame012", "conversations": [{"role": "user", "content": [{"type": "video", "video": "gs://abee-data/videos/ep001.mp4", "video_start": 0.0, "video_end": 4.0, "fps": 2}, {"type": "text", "text": "Analyze the robot arm trajectory and determine if it is safe to initiate human handoff. Reason step by step."}]}, {"role": "assistant", "content": "<think>\nThe robot arm is in deceleration phase. Velocity vectors converge to near-zero at frame 11. The human is positioned at 45-degree offset, outside the kinematic envelope. The gripper load has been released as indicated by the torque signal drop at frame 9. All motion has settled.\n</think>\n\nACT: RELEASE — Safe handoff window confirmed. Robot velocity < 0.02 m/s, human outside kinematic reach envelope, gripper empty."}]}
+{"id": "clasp_ep001_frame012", "conversations": [{"role": "user", "content": [{"type": "video", "video": "gs://clasp-data/videos/ep001.mp4", "video_start": 0.0, "video_end": 4.0, "fps": 2}, {"type": "text", "text": "Analyze the robot arm trajectory and determine if it is safe to initiate human handoff. Reason step by step."}]}, {"role": "assistant", "content": "<think>\nThe robot arm is in deceleration phase. Velocity vectors converge to near-zero at frame 11. The human is positioned at 45-degree offset, outside the kinematic envelope. The gripper load has been released as indicated by the torque signal drop at frame 9. All motion has settled.\n</think>\n\nACT: RELEASE — Safe handoff window confirmed. Robot velocity < 0.02 m/s, human outside kinematic reach envelope, gripper empty."}]}
 ```
 
 For image-based (frame-level) samples:
 
 ```jsonl
-{"id": "abee_ep002_frame008", "conversations": [{"role": "user", "content": [{"type": "image", "image": "gs://abee-data/frames/ep002_f008.jpg"}, {"type": "text", "text": "What is the current state of the robot arm? Is it safe to release the human?"}]}, {"role": "assistant", "content": "<think>\nArm is mid-trajectory. Velocity appears non-zero. Human within 0.8m range.\n</think>\n\nTHINK: Trajectory incomplete. Do not release."}]}
+{"id": "clasp_ep002_frame008", "conversations": [{"role": "user", "content": [{"type": "image", "image": "gs://clasp-data/frames/ep002_f008.jpg"}, {"type": "text", "text": "What is the current state of the robot arm? Is it safe to release the human?"}]}, {"role": "assistant", "content": "<think>\nArm is mid-trajectory. Velocity appears non-zero. Human within 0.8m range.\n</think>\n\nTHINK: Trajectory incomplete. Do not release."}]}
 ```
 
 ### GCS Bucket Layout
 
 ```
-gs://abee-sft-data/
+gs://clasp-sft-data/
   ├── raw/
-  │   └── episodes/              # Raw video + annotation JSON from ABEE orchestrator
+  │   └── episodes/              # Raw video + annotation JSON from CLASP orchestrator
   ├── processed/
   │   ├── train.jsonl            # 70% of curated SFT samples
   │   ├── val.jsonl              # 15% validation split
@@ -379,9 +379,9 @@ gs://abee-sft-data/
           └── run_20260305_001/
 ```
 
-### Data Split Recommendation for ABEE
+### Data Split Recommendation for CLASP
 
-Given the sequential nature of ABEE episodes (temporal ordering matters):
+Given the sequential nature of CLASP episodes (temporal ordering matters):
 
 ```
 Split Strategy: Temporal Split (NOT random)
@@ -410,7 +410,7 @@ def upload_split_datasets(
     temporal_split: bool = True,
     seed: int = 42,
 ):
-    """Split and upload ABEE SFT samples to GCS."""
+    """Split and upload CLASP SFT samples to GCS."""
     client = storage.Client()
     bucket = client.bucket(bucket_name)
 
@@ -454,7 +454,7 @@ from datetime import datetime
 
 PROJECT_ID = "your-gcp-project"
 REGION = "us-central1"
-BUCKET = "gs://abee-sft-data"
+BUCKET = "gs://clasp-sft-data"
 CONTAINER_URI = f"{REGION}-docker.pkg.dev/{PROJECT_ID}/cosmos-training/cosmos-reason2-trainer:v1.0"
 
 aiplatform.init(project=PROJECT_ID, location=REGION, staging_bucket=BUCKET)
@@ -462,7 +462,7 @@ aiplatform.init(project=PROJECT_ID, location=REGION, staging_bucket=BUCKET)
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
 job = aiplatform.CustomJob(
-    display_name=f"abee-cosmos-sft-{timestamp}",
+    display_name=f"clasp-cosmos-sft-{timestamp}",
     worker_pool_specs=[
         {
             "machine_spec": {
@@ -507,7 +507,7 @@ print(f"Job complete. Model at: {job.output_info.artifact_uri}")
 For reproducible, tracked runs with automatic data versioning and model registration:
 
 ```python
-# pipeline_abee_sft.py
+# pipeline_clasp_sft.py
 from kfp import dsl
 from kfp.v2 import compiler
 import google.cloud.aiplatform as aiplatform
@@ -515,7 +515,7 @@ from google_cloud_pipeline_components.v1.custom_job import CustomTrainingJobOp
 
 PROJECT_ID = "your-gcp-project"
 REGION = "us-central1"
-PIPELINE_ROOT = "gs://abee-sft-data/pipeline_runs"
+PIPELINE_ROOT = "gs://clasp-sft-data/pipeline_runs"
 CONTAINER_URI = f"{REGION}-docker.pkg.dev/{PROJECT_ID}/cosmos-training/cosmos-reason2-trainer:v1.0"
 
 
@@ -589,11 +589,11 @@ def register_model(
 
 
 @dsl.pipeline(
-    name="abee-cosmos-sft-pipeline",
-    description="ABEE SFT training pipeline for Cosmos-Reason2-8B",
+    name="clasp-cosmos-sft-pipeline",
+    description="CLASP SFT training pipeline for Cosmos-Reason2-8B",
     pipeline_root=PIPELINE_ROOT,
 )
-def abee_sft_pipeline(
+def clasp_sft_pipeline(
     raw_data_uri: str,
     bucket_name: str,
     run_id: str,
@@ -612,7 +612,7 @@ def abee_sft_pipeline(
     training_job = CustomTrainingJobOp(
         project=PROJECT_ID,
         location=REGION,
-        display_name=f"abee-sft-{run_id}",
+        display_name=f"clasp-sft-{run_id}",
         worker_pool_specs=[{
             "machine_spec": {
                 "machine_type": "a2-highgpu-1g",
@@ -643,22 +643,22 @@ def abee_sft_pipeline(
     # Step 3: Register model
     register_model(
         artifact_uri=f"gs://{bucket_name}/runs/{run_id}/artifacts/model",
-        display_name=f"abee-cosmos-reason2-{run_id}",
+        display_name=f"clasp-cosmos-reason2-{run_id}",
         project=PROJECT_ID,
         location=REGION,
     ).after(training_job)
 
 
 # Compile and submit
-compiler.Compiler().compile(abee_sft_pipeline, "abee_sft_pipeline.json")
+compiler.Compiler().compile(clasp_sft_pipeline, "clasp_sft_pipeline.json")
 
 aiplatform.init(project=PROJECT_ID, location=REGION, staging_bucket=PIPELINE_ROOT)
 pipeline_job = aiplatform.PipelineJob(
-    display_name="abee-sft-run-001",
-    template_path="abee_sft_pipeline.json",
+    display_name="clasp-sft-run-001",
+    template_path="clasp_sft_pipeline.json",
     parameter_values={
-        "raw_data_uri": "gs://abee-sft-data/raw/all_curated_samples.jsonl",
-        "bucket_name": "abee-sft-data",
+        "raw_data_uri": "gs://clasp-sft-data/raw/all_curated_samples.jsonl",
+        "bucket_name": "clasp-sft-data",
         "run_id": "run_20260305",
         "lora_rank": 16,
         "learning_rate": 2e-4,
@@ -684,15 +684,15 @@ aiplatform.init(project=PROJECT_ID, location=REGION)
 
 # Create a TensorBoard instance (one-time)
 tensorboard = aiplatform.Tensorboard.create(
-    display_name="abee-training-board",
+    display_name="clasp-training-board",
     project=PROJECT_ID,
     location=REGION,
 )
 
 # Create an experiment
 experiment = aiplatform.Experiment.create(
-    experiment_name="abee-cosmos-sft-experiments",
-    description="ABEE SFT experiments for Cosmos-Reason2-8B",
+    experiment_name="clasp-cosmos-sft-experiments",
+    description="CLASP SFT experiments for Cosmos-Reason2-8B",
     tensorboard=tensorboard.resource_name,
 )
 
@@ -708,7 +708,7 @@ with aiplatform.start_run(run="run-20260305-001") as run:
 Vizier uses Bayesian optimization. Your training script must report the metric back via `cloudml-hypertune`:
 
 ```python
-# In your training script (train_abee.py)
+# In your training script (train_clasp.py)
 import hypertune
 
 hpt = hypertune.HyperTune()
@@ -729,7 +729,7 @@ from google.cloud.aiplatform import HyperparameterTuningJob
 from google.cloud.aiplatform.aiplatform import gapic
 
 hpt_job = HyperparameterTuningJob(
-    display_name="abee-cosmos-hpt",
+    display_name="clasp-cosmos-hpt",
     custom_job=job,  # your CustomJob spec from above
     metric_spec={"eval_loss": "minimize"},
     parameter_spec={
@@ -749,8 +749,8 @@ After training, register your model artifact for version tracking and deployment
 
 ```python
 model = aiplatform.Model.upload(
-    display_name="abee-cosmos-reason2-8b-lora-v1",
-    artifact_uri="gs://abee-sft-data/artifacts/models/run_20260305_001",
+    display_name="clasp-cosmos-reason2-8b-lora-v1",
+    artifact_uri="gs://clasp-sft-data/artifacts/models/run_20260305_001",
     serving_container_image_uri=(
         # Use Vertex AI's vLLM container for inference
         "us-docker.pkg.dev/vertex-ai/vertex-model-garden-pytorch/pytorch-vllm-serve:20250204_0916_RC00"
@@ -766,7 +766,7 @@ model = aiplatform.Model.upload(
         "--enable-lora",
     ],
     labels={
-        "project": "abee",
+        "project": "clasp",
         "model_type": "cosmos_reason2_8b",
         "tuning": "lora_r16",
     },
@@ -804,7 +804,7 @@ aiplatform.init(project=PROJECT_ID, location=REGION)
 # Upload a stub model (NIM reads from its own cache, not model artifacts)
 model = aiplatform.Model.upload(
     display_name="cosmos-reason2-8b-nim",
-    artifact_uri="gs://abee-sft-data/artifacts/nim-placeholder/",  # empty dir
+    artifact_uri="gs://clasp-sft-data/artifacts/nim-placeholder/",  # empty dir
     serving_container_image_uri="nvcr.io/nim/nvidia/cosmos-reason2-8b:latest",
     serving_container_environment_variables={
         "NVIDIA_API_KEY": "YOUR_NVIDIA_API_KEY",
@@ -827,13 +827,13 @@ endpoint = model.deploy(
 **Caveats:**
 1. NIM containers pull model weights from NVIDIA NGC on first boot — this requires outbound internet access from the serving container and a valid `NGC_API_KEY`.
 2. NIM containers are large (~20GB+ compressed). Cold start times are significant.
-3. For ABEE's cloud distillation use case (Claude 3.5 Sonnet generating teacher labels), NIM on Vertex is overkill. Use NVIDIA's hosted NIM API (`https://build.nvidia.com/nvidia/cosmos-reason2-8b`) directly via API calls.
+3. For CLASP's cloud distillation use case (Claude 3.5 Sonnet generating teacher labels), NIM on Vertex is overkill. Use NVIDIA's hosted NIM API (`https://build.nvidia.com/nvidia/cosmos-reason2-8b`) directly via API calls.
 
-### Recommended Inference Path for ABEE
+### Recommended Inference Path for CLASP
 
 | Use Case | Recommended Approach |
 |---|---|
-| Local development / ABEE agent inference | Local cosmos-reason2 4-bit via `local_inference.py` |
+| Local development / CLASP agent inference | Local cosmos-reason2 4-bit via `local_inference.py` |
 | Cloud distillation (teacher labeling) | NVIDIA hosted NIM API (`build.nvidia.com`) |
 | Evaluation of fine-tuned LoRA | vLLM on Vertex AI Endpoint (custom container) |
 | Production serving | vLLM with `--enable-lora` on Vertex AI Endpoint |
@@ -898,7 +898,7 @@ python -c "
 from huggingface_hub import snapshot_download
 import subprocess
 path = snapshot_download('nvidia/Cosmos-Reason2-8B', local_dir='/tmp/cosmos-reason2-8b')
-subprocess.run(['gsutil', '-m', 'cp', '-r', path, 'gs://abee-sft-data/model_cache/cosmos-reason2-8b/'])
+subprocess.run(['gsutil', '-m', 'cp', '-r', path, 'gs://clasp-sft-data/model_cache/cosmos-reason2-8b/'])
 "
 ```
 
@@ -908,12 +908,12 @@ Then in your container, load from GCS instead:
 # Load model weights from GCS cache instead of HuggingFace Hub
 import subprocess
 subprocess.run(["gsutil", "-m", "cp", "-r",
-    "gs://abee-sft-data/model_cache/cosmos-reason2-8b/",
+    "gs://clasp-sft-data/model_cache/cosmos-reason2-8b/",
     "/tmp/base_model/"], check=True)
 model = AutoModelForCausalLM.from_pretrained("/tmp/base_model/", ...)
 ```
 
-### Estimated Cost for a Typical ABEE SFT Run
+### Estimated Cost for a Typical CLASP SFT Run
 
 Assumptions: 1000 SFT samples, 3 epochs, A100 40GB spot, ~2 hours training time
 
@@ -948,14 +948,14 @@ For 10 HPT trials: ~$35–$45 total. Very affordable at this scale.
 | QLoRA (r=16, 4-bit) | ~10–14 GB | Good | Medium | L4 or A100 40GB x1 |
 | DoRA (Weight-Decomposed LoRA) | ~24–30 GB | Better than LoRA | Similar to LoRA | A100 40GB x1 |
 
-**ABEE Recommendation:** Start with QLoRA (4-bit, r=16) on a single A100 40GB spot VM. The Life-Points game mechanics produce high-quality behavioral signal per sample — you need fewer samples than typical SFT, so QLoRA quality should be sufficient.
+**CLASP Recommendation:** Start with QLoRA (4-bit, r=16) on a single A100 40GB spot VM. The Life-Points game mechanics produce high-quality behavioral signal per sample — you need fewer samples than typical SFT, so QLoRA quality should be sufficient.
 
 ### Official Training Framework
 
 The cosmos-reason2 GitHub repository uses `cosmos-rl`, which is configured via TOML files:
 
 ```toml
-# Example: abee_sft_config.toml
+# Example: clasp_sft_config.toml
 [model]
 model_name_or_path = "nvidia/Cosmos-Reason2-8B"
 trust_remote_code = true
@@ -982,19 +982,19 @@ annotation_path = "/tmp/train.jsonl"
 media_path = "/tmp/frames/"
 val_annotation_path = "/tmp/val.jsonl"
 
-# Weighted data blending (for multi-source ABEE datasets)
+# Weighted data blending (for multi-source CLASP datasets)
 [[data.sources]]
-name = "abee_high_quality"
+name = "clasp_high_quality"
 weight = 0.60
 
 [[data.sources]]
-name = "abee_standard"
+name = "clasp_standard"
 weight = 0.40
 ```
 
-### Video vs. Frame Input for ABEE
+### Video vs. Frame Input for CLASP
 
-ABEE generates both frame-level and sequence-level observations. Both are supported by Cosmos-Reason2:
+CLASP generates both frame-level and sequence-level observations. Both are supported by Cosmos-Reason2:
 
 - **Frame-level:** Each training sample = single image + ACT/THINK label
   - Simpler to manage in JSONL
@@ -1010,13 +1010,13 @@ Recommendation: use sequence-level (short video clips) for final training runs, 
 
 ---
 
-## ABEE Project Recommended Architecture
+## CLASP Project Recommended Architecture
 
 ### Phase 1: Development (Local + Vertex AI Dev)
 
 ```
 [Local RTX 4060 Ti 16GB]
-  - cosmos-reason2 4-bit inference for ABEE game loop
+  - cosmos-reason2 4-bit inference for CLASP game loop
   - Collect SFT samples from game episodes
   - Upload SFT JSONL to GCS bucket
 
@@ -1030,7 +1030,7 @@ Recommendation: use sequence-level (short video clips) for final training runs, 
 
 ```
 [Vertex AI — A100 40GB Spot or FLEX_START]
-  - Full 3-epoch SFT run on curated ABEE dataset
+  - Full 3-epoch SFT run on curated CLASP dataset
   - Hyperparameter search: 8–12 Vizier trials
   - TensorBoard monitoring via Vertex AI Experiments
   - Model registered in Vertex AI Model Registry
@@ -1052,9 +1052,9 @@ Recommendation: use sequence-level (short video clips) for final training runs, 
 ### GCS Bucket Structure
 
 ```
-gs://abee-sft-data/          # Main data bucket
-gs://abee-model-artifacts/   # Model outputs, checkpoints
-gs://abee-pipeline-root/     # KFP pipeline run artifacts
+gs://clasp-sft-data/          # Main data bucket
+gs://clasp-model-artifacts/   # Model outputs, checkpoints
+gs://clasp-pipeline-root/     # KFP pipeline run artifacts
 ```
 
 ---
@@ -1076,15 +1076,15 @@ gcloud services enable \
     compute.googleapis.com
 
 # Create GCS buckets
-gsutil mb -l us-central1 gs://abee-sft-data
-gsutil mb -l us-central1 gs://abee-model-artifacts
-gsutil mb -l us-central1 gs://abee-pipeline-root
+gsutil mb -l us-central1 gs://clasp-sft-data
+gsutil mb -l us-central1 gs://clasp-model-artifacts
+gsutil mb -l us-central1 gs://clasp-pipeline-root
 
 # Create Artifact Registry for Docker images
 gcloud artifacts repositories create cosmos-training \
     --repository-format=docker \
     --location=us-central1 \
-    --description="ABEE Cosmos training containers"
+    --description="CLASP Cosmos training containers"
 
 # Grant IAM permissions for Vertex AI service account
 PROJECT_NUMBER=$(gcloud projects describe YOUR_PROJECT_ID --format="value(projectNumber)")
@@ -1116,10 +1116,10 @@ docker push us-central1-docker.pkg.dev/YOUR_PROJECT/cosmos-training/cosmos-reaso
 ### Step 4: Upload SFT Data
 
 ```bash
-# From ABEE orchestrator output
+# From CLASP orchestrator output
 python upload_sft_data.py \
     --input /mnt/nv4/User_Data/development/cosmos-cookoff/data/sft_samples.jsonl \
-    --bucket abee-sft-data \
+    --bucket clasp-sft-data \
     --temporal-split
 ```
 

@@ -1,5 +1,5 @@
 """
-ABEE SFT Dataset Serializer
+CLASP SFT Dataset Serializer
 Writes successful agent traces to JSONL for downstream VLA fine-tuning.
 """
 from __future__ import annotations
@@ -10,7 +10,7 @@ from pathlib import Path
 from .models import SFTRecord
 from configs.settings import SFT_OUTPUT
 
-log = logging.getLogger("abee.sft")
+log = logging.getLogger("clasp.sft")
 
 
 class SFTSerializer:

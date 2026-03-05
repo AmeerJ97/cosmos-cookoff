@@ -1,4 +1,4 @@
-# ABEE Documentation Map
+# CLASP Documentation Map
 
 ## Conventions
 - **Architecture docs/** — System design, pipeline architecture, diagrams, networking, KV cache design.
@@ -7,7 +7,7 @@
   Reference material that informed design decisions.
 - **tracker/** — Living documents: training logs, price tracking, research index.
   Updated continuously as work progresses.
-- **Research - ABEE/** — Earlier ABEE-specific research (pre-implementation).
+- **Research - CLASP/** — Earlier CLASP-specific research (pre-implementation).
 - **Research - General/**, **REsearch - Vision/**, **Other ML research/** — Background research.
 - **resources/** — Models, tooling inventory, external references.
 
@@ -15,7 +15,7 @@
 
 | Document | Purpose | Status |
 |---|---|---|
-| [ABEE System Documentation.md](ABEE%20System%20Documentation.md) | **Complete reference** — 8 Mermaid diagrams covering every subsystem | Current |
+| [CLASP System Documentation.md](CLASP%20System%20Documentation.md) | **Complete reference** — 8 Mermaid diagrams covering every subsystem | Current |
 | [System Architecture - Adversarial Blind Epistemic Ensemble.md](System%20Architecture%20-%20Adversarial%20Blind%20Epistemic%20Ensemble.md) | Master system design: POMDP, agents, scoring, oracle, memory (958 lines) | Current |
 | [Training Pipeline Architecture.md](Training%20Pipeline%20Architecture.md) | End-to-end training: data flow, Vertex AI mapping, parallelization, KV cache | Current |
 | [PROPOSAL - Multi-Modal 3D Scene Fusion & Physics Oracle Upgrade.md](PROPOSAL%20-%20Multi-Modal%203D%20Scene%20Fusion%20%26%20Physics%20Oracle%20Upgrade.md) | Phase 2: SHARP 3DGS, sensor fusion, oracle upgrade | DRAFT |

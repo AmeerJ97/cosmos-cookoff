@@ -1,9 +1,9 @@
 # Gaussian Splatting for Robotic Manipulation and Human-Robot Handoff
-## Research Synthesis for the ABEE Project
+## Research Synthesis for the CLASP Project
 
 **Date:** 2026-03-05
 **Author:** Research Synthesizer (Claude Sonnet 4.6)
-**Relevance:** ABEE Physics Oracle enhancement, oracle pre-processing pipeline, potential replacement or augmentation of SAM2 + MiDaS
+**Relevance:** CLASP Physics Oracle enhancement, oracle pre-processing pipeline, potential replacement or augmentation of SAM2 + MiDaS
 
 ---
 
@@ -16,7 +16,7 @@
 5. [Integration with Vision-Language Models](#integration-with-vision-language-models)
 6. [NVIDIA Ecosystem: Cosmos, NuRec, and 3DGUT](#nvidia-ecosystem-cosmos-nurec-and-3dgut)
 7. [3DGS vs MiDaS for Depth Estimation](#3dgs-vs-midas-for-depth-estimation)
-8. [Feasibility Analysis for ABEE](#feasibility-analysis-for-abee)
+8. [Feasibility Analysis for CLASP](#feasibility-analysis-for-clasp)
 9. [RTX 4060 Ti 16GB Compute Assessment](#rtx-4060-ti-16gb-compute-assessment)
 10. [Integration Recommendations](#integration-recommendations)
 11. [Research Gaps and Open Questions](#research-gaps-and-open-questions)
@@ -27,17 +27,17 @@
 
 ## Executive Summary
 
-3D Gaussian Splatting (3DGS) has rapidly matured from a novel view synthesis technique (Kerbl et al., SIGGRAPH 2023) into a foundational representation for physical AI and robotics as of 2025-2026. The key value proposition for ABEE is threefold:
+3D Gaussian Splatting (3DGS) has rapidly matured from a novel view synthesis technique (Kerbl et al., SIGGRAPH 2023) into a foundational representation for physical AI and robotics as of 2025-2026. The key value proposition for CLASP is threefold:
 
 1. **Richer 3D geometry than MiDaS**: 3DGS produces explicit, metric-scale point clouds with per-Gaussian attributes, while MiDaS produces relative (unitless) depth maps. When combined with even minimal multi-view input (2-4 cameras or sequential frames), 3DGS depth rendering demonstrably outperforms monocular depth estimation.
 
 2. **Semantic + geometric representation in one structure**: Language features, grasp affordances, physical properties (mass, friction), and depth can all be embedded directly into the Gaussian primitives. This is directly applicable to estimating grip stability, object pose, and handoff safety.
 
-3. **NVIDIA has made 3DGS a first-class citizen of the Cosmos / Isaac Sim ecosystem**: The NuRec library (August 2025) integrates RTX-accelerated Gaussian splatting into Omniverse, and the Cosmos world foundation models use Gaussian splat scenes as their geometric backbone. This is highly aligned with the ABEE project's NVIDIA Cosmos Cookoff context.
+3. **NVIDIA has made 3DGS a first-class citizen of the Cosmos / Isaac Sim ecosystem**: The NuRec library (August 2025) integrates RTX-accelerated Gaussian splatting into Omniverse, and the Cosmos world foundation models use Gaussian splat scenes as their geometric backbone. This is highly aligned with the CLASP project's NVIDIA Cosmos Cookoff context.
 
-**For ABEE specifically**, the most actionable near-term integration is replacing or augmenting the MiDaS depth component in the Physics Oracle with a lightweight 3DGS-based depth renderer initialized from monocular video. This is feasible on the RTX 4060 Ti 16GB, though with important caveats around latency and reconstruction quality documented below.
+**For CLASP specifically**, the most actionable near-term integration is replacing or augmenting the MiDaS depth component in the Physics Oracle with a lightweight 3DGS-based depth renderer initialized from monocular video. This is feasible on the RTX 4060 Ti 16GB, though with important caveats around latency and reconstruction quality documented below.
 
-A more ambitious path - using a 4D Gaussian representation of the hand-object interaction scene as an additional input channel to the Cosmos-Reason2-8B VLMs - is technically grounded by the GaussianVLM and SplatTalk papers (ICCV 2025) but would require significant engineering and may exceed real-time requirements for the current ABEE architecture.
+A more ambitious path - using a 4D Gaussian representation of the hand-object interaction scene as an additional input channel to the Cosmos-Reason2-8B VLMs - is technically grounded by the GaussianVLM and SplatTalk papers (ICCV 2025) but would require significant engineering and may exceed real-time requirements for the current CLASP architecture.
 
 ---
 
@@ -89,7 +89,7 @@ The standard pipeline for video input:
 3. **Differentiable optimization**: Gaussians are iteratively densified and pruned while minimizing photometric loss
 4. **Depth extraction**: Depth maps rendered from any viewpoint by projecting Gaussian means through the camera model, sorted by depth
 
-For **monocular video** (single camera, no stereo), modern approaches (DepthSplat, Mode-GS) use a monocular depth prior (e.g., Depth Anything V2) to bootstrap geometric initialization before Gaussian optimization - this is the most relevant configuration for ABEE's single-camera setup.
+For **monocular video** (single camera, no stereo), modern approaches (DepthSplat, Mode-GS) use a monocular depth prior (e.g., Depth Anything V2) to bootstrap geometric initialization before Gaussian optimization - this is the most relevant configuration for CLASP's single-camera setup.
 
 ---
 
@@ -102,7 +102,7 @@ For **monocular video** (single camera, no stereo), modern approaches (DepthSpla
 
 - **Method**: RGB-D input from limited viewpoints; Efficient Feature Distillation (EFD) module uses contrastive learning to embed CLIP/language features per-Gaussian; pre-trained grasp model generates collision-free candidates; normal-guided filtering selects best grasp pose
 - **Key insight**: Explicit Gaussian representation provides direct surface normals - a computationally cheap feature critical for grasp quality
-- **Relevance to ABEE**: The normal-guided grasp module could estimate whether the robot's grip on the handoff object is stable (wrist perpendicular to object surface)
+- **Relevance to CLASP**: The normal-guided grasp module could estimate whether the robot's grip on the handoff object is stable (wrist perpendicular to object surface)
 
 #### GraspSplats (arXiv 2409.02084, 2024)
 - Depth-supervised 3DGS for high-quality scene representations in **under 60 seconds**
@@ -125,32 +125,32 @@ For **monocular video** (single camera, no stereo), modern approaches (DepthSpla
 - **Tracks both human AND robot manipulation** - explicitly designed for handoff-like scenarios
 - **Results**: 12 consecutive successful object resets; 80% recovery from 30-degree tool perturbations during grasp
 - **Tracking mechanism**: Loss minimization between rendered DINO features and observed frames - runs without expensive rescanning
-- **Relevance to ABEE**: POGS directly models the scenario ABEE reasons about. It could provide object pose estimates (stability, position, orientation) as oracle features.
+- **Relevance to CLASP**: POGS directly models the scenario CLASP reasons about. It could provide object pose estimates (stability, position, orientation) as oracle features.
 
 #### Splat-MOVER (CoRL 2024, 44 citations)
 - Three-module stack: ASK-Splat (semantic + affordance), SEE-Splat (real-time scene editing / digital twin), Grasp-Splat (grasp generation)
 - ASK-Splat trains in real-time from RGB images in a brief scanning phase
 - SEE-Splat and Grasp-Splat operate in real-time during manipulation
 - Demonstrated on physical Kinova robot
-- **Relevance to ABEE**: The "digital twin" concept (SEE-Splat) provides a continuously updated 3D model of the handoff scene that could feed into the physics oracle
+- **Relevance to CLASP**: The "digital twin" concept (SEE-Splat) provides a continuously updated 3D model of the handoff scene that could feed into the physics oracle
 
 #### PUGS - Zero-shot Physical Understanding (ICRA 2025)
 - Reconstructs 3D objects via Gaussian splatting then **predicts physical properties zero-shot**: mass, friction, hardness
 - Geometry-aware regularization loss for improved shape quality
 - Feature-based property propagation module
 - State-of-the-art on ABO-500 mass prediction benchmark
-- **Relevance to ABEE**: Physical property prediction from visual geometry could inform grip stability and safe release window estimation (heavy objects need more support; slippery objects are higher risk)
+- **Relevance to CLASP**: Physical property prediction from visual geometry could inform grip stability and safe release window estimation (heavy objects need more support; slippery objects are higher risk)
 
 #### RoboSplat (RSS 2025)
 - Generates novel demonstration data for policy learning using 3DGS
 - One-shot manipulation with 87.8% success vs 57.2% for hundreds of real-world demonstrations
 - Generalizes across 6 axes: object poses, types, camera views, scene appearance, lighting, embodiments
-- **Relevance to ABEE**: Could generate synthetic training data for SFT dataset across diverse handoff scenarios
+- **Relevance to CLASP**: Could generate synthetic training data for SFT dataset across diverse handoff scenarios
 
 #### GWM - Gaussian World Models (ICCV 2025)
 - Action-conditioned 3D video prediction using Gaussian Splatting as the world state
 - Enhances visual representation learning for imitation learning
-- **Relevance to ABEE**: Frame-level world model that could predict how the handoff scene evolves under robot actions
+- **Relevance to CLASP**: Frame-level world model that could predict how the handoff scene evolves under robot actions
 
 ### Architectural Patterns in Robotic 3DGS
 
@@ -161,29 +161,29 @@ Three recurring integration patterns are visible across papers:
 - Query the Gaussian field at runtime for features, depths, normals
 - Examples: GaussianGrasper, GraspSplats
 - Latency during operation: real-time (rendering = <10ms per frame)
-- **ABEE suitability**: High for static workspace, moderate for dynamic handoff
+- **CLASP suitability**: High for static workspace, moderate for dynamic handoff
 
 **Pattern 2: Online Incremental Update**
 - Streaming input; Gaussians updated frame-by-frame
 - Examples: POGS (pose tracking), Stereo-GS (mapping)
 - Latency: variable; pose refinement ~100ms/update with POGS
-- **ABEE suitability**: High - matches the ABEE streaming video paradigm
+- **CLASP suitability**: High - matches the CLASP streaming video paradigm
 
 **Pattern 3: Physics-Coupled Representation**
 - Dual particle + Gaussian representation with 33ms physics cycle
 - Examples: Physically Embodied Gaussians (NVIDIA Warp + gsplat)
 - Provides predictive simulation with visual correction
-- **ABEE suitability**: Aspirational - high value but significant engineering effort
+- **CLASP suitability**: Aspirational - high value but significant engineering effort
 
 ---
 
 ## Hand-Object Interaction with 3DGS
 
-This category is the most directly relevant to ABEE's human-robot handoff scenario.
+This category is the most directly relevant to CLASP's human-robot handoff scenario.
 
 ### Interaction-Aware 4D Gaussian Splatting (arXiv 2511.14540, 2025)
 
-The most relevant paper for ABEE's core problem.
+The most relevant paper for CLASP's core problem.
 
 **What it does:**
 - Simultaneously models geometry and appearance of **hand-object interaction** from monocular RGB egocentric video
@@ -198,7 +198,7 @@ The most relevant paper for ABEE's core problem.
 - Handles mutual occlusion and edge blur - critical for handoff scenes where hand and object overlap
 - Limitation: struggles with "exceedingly rapid motion / complex trajectories"
 
-**ABEE relevance**: The ability to reconstruct the full hand-object interaction geometry from monocular video - without object priors - maps directly to the ABEE scenario. The trained model could serve as a feature extractor during inference, even if training is offline.
+**CLASP relevance**: The ability to reconstruct the full hand-object interaction geometry from monocular video - without object priors - maps directly to the CLASP scenario. The trained model could serve as a feature extractor during inference, even if training is offline.
 
 ### EgoGaussian (ResearchGate 2025)
 - Dynamic scene understanding from egocentric (first-person) video with 3DGS
@@ -213,7 +213,7 @@ The most relevant paper for ABEE's core problem.
 ### Object and Contact Point Tracking (arXiv 2411.03555)
 - Tracks objects AND contact points in demonstrations using 3DGS
 - Contact point tracking directly relevant to grip stability assessment
-- **Relevance to ABEE**: Contact geometry is a key physical cue for safe release window prediction
+- **Relevance to CLASP**: Contact geometry is a key physical cue for safe release window prediction
 
 ---
 
@@ -236,7 +236,7 @@ This section addresses whether Gaussian splat representations can be fed directl
 - CIDEr scores: embodied dialogue 145.9 -> 270.1; planning 65.1 -> 220.4
 - Designed for embodied reasoning tasks including spatial QA and planning
 
-**ABEE relevance**: The 132-token compression scheme is key. It means a full 3D Gaussian scene representation can be fed to a VLM within a reasonable token budget. This is the path to feeding Cosmos-Reason2-8B a 3D scene representation directly.
+**CLASP relevance**: The 132-token compression scheme is key. It means a full 3D Gaussian scene representation can be fed to a VLM within a reasonable token budget. This is the path to feeding Cosmos-Reason2-8B a 3D scene representation directly.
 
 ### SplatTalk (ICCV 2025, arXiv 2503.06271)
 **3D VQA with Gaussian Splatting - zero-shot capable.**
@@ -249,7 +249,7 @@ This section addresses whether Gaussian splat representations can be fed directl
 - 3,584-dim features compressed to 256-dim via autoencoder
 - **32,076 tokens** fed to Qwen2 LLM using entropy-adaptive sampling (selects highest-entropy Gaussians first)
 
-**Key implication for ABEE**: SplatTalk takes posed RGB images as input (exactly what ABEE has) and produces tokens directly compatible with a standard LLM interface. No depth sensor required. The entropy-adaptive sampling ensures semantically informative regions (hands, objects in transition) are prioritized.
+**Key implication for CLASP**: SplatTalk takes posed RGB images as input (exactly what CLASP has) and produces tokens directly compatible with a standard LLM interface. No depth sensor required. The entropy-adaptive sampling ensures semantically informative regions (hands, objects in transition) are prioritized.
 
 ### SceneSplat + 3D Vision-Language Gaussian Splatting (ICLR 2025)
 - Scene understanding via pretrained VLP (Vision-Language Pretraining) on Gaussian representations
@@ -275,7 +275,7 @@ Cosmos-Reason2-8B uses a standard VLM architecture (vision encoder + LLM). Direc
 **Option C - Feature Map Augmentation:**
 - Extract per-Gaussian features (depth, normal, semantic) and render as additional feature channels
 - Feed as extra "views" alongside standard RGB frames
-- Moderate engineering effort; potentially achievable in the ABEE SFT dataset pipeline
+- Moderate engineering effort; potentially achievable in the CLASP SFT dataset pipeline
 
 ---
 
@@ -321,7 +321,7 @@ A production-feasible architecture described in NVIDIA's technical blog:
 - Fewer cameras than traditional 3DGS: leverages known robot geometry, poses, and physical constraints
 - Creates live digital twins for downstream robot tasks
 
-**This 33ms physics cycle matches ABEE's frame rate requirements** for a real-time oracle.
+**This 33ms physics cycle matches CLASP's frame rate requirements** for a real-time oracle.
 
 ### 3DGUT vs Standard 3DGS
 
@@ -337,9 +337,9 @@ A production-feasible architecture described in NVIDIA's technical blog:
 
 ## 3DGS vs MiDaS for Depth Estimation
 
-### MiDaS Limitations (Current ABEE Oracle)
+### MiDaS Limitations (Current CLASP Oracle)
 
-MiDaS (and its successor Depth Anything V2) produces **relative depth** - values have no absolute scale. Key limitations for ABEE:
+MiDaS (and its successor Depth Anything V2) produces **relative depth** - values have no absolute scale. Key limitations for CLASP:
 
 - Scale is unknown and varies between frames
 - Cannot directly compute metric distances (e.g., "object is 45cm from robot")
@@ -374,7 +374,7 @@ MiDaS (and its successor Depth Anything V2) produces **relative depth** - values
 - RGB-only 3DGS SLAM (no depth): ATE RMSE 0.51-8.51 cm (highly variable)
 - **Conclusion**: 3DGS needs depth initialization for reliable geometry; pure monocular is unreliable without strong priors
 
-### Practical Recommendation for ABEE
+### Practical Recommendation for CLASP
 
 The ideal configuration is a hybrid:
 
@@ -388,9 +388,9 @@ This uses MiDaS-class monocular depth as a bootstrapping signal, then improves i
 
 ---
 
-## Feasibility Analysis for ABEE
+## Feasibility Analysis for CLASP
 
-### What ABEE Needs from an Oracle
+### What CLASP Needs from an Oracle
 
 The current Physics Oracle (SAM2 + MiDaS) provides:
 - Object/hand segmentation masks (SAM2)
@@ -407,7 +407,7 @@ A 3DGS-enhanced oracle could additionally provide:
 
 ### Scenario Analysis: Handoff Scene
 
-The ABEE handoff scenario has specific properties:
+The CLASP handoff scenario has specific properties:
 - **Duration**: Brief (2-10 seconds)
 - **Camera**: Single (likely monocular) or stereo pair
 - **Subjects**: Human hand, object, robot gripper
@@ -416,7 +416,7 @@ The ABEE handoff scenario has specific properties:
 
 **3DGS mode most suited: Online incremental + object-centric tracking**
 
-The recommended architecture for ABEE would be:
+The recommended architecture for CLASP would be:
 1. Background scene reconstructed offline (static Gaussians, trained once)
 2. Dynamic foreground (hand, object) tracked per-frame using POGS-style feature+depth loss minimization
 3. Object pose extracted from Gaussian centroid/orientation
@@ -425,7 +425,7 @@ The recommended architecture for ABEE would be:
 
 ### Latency Budget Analysis
 
-ABEE runs at 30 FPS (33ms per frame). Current oracle components:
+CLASP runs at 30 FPS (33ms per frame). Current oracle components:
 - SAM2 segmentation: ~15-30ms per frame (on RTX 4060 Ti)
 - MiDaS depth: ~10-20ms per frame
 
@@ -439,7 +439,7 @@ ABEE runs at 30 FPS (33ms per frame). Current oracle components:
 
 ### VRAM Budget (RTX 4060 Ti 16GB)
 
-Current ABEE VRAM usage estimates:
+Current CLASP VRAM usage estimates:
 - Cosmos-Reason2-8B (4-bit quantized): ~6-8GB
 - SAM2 + MiDaS: ~2-3GB
 - Overhead (activations, KV cache): ~2GB
@@ -456,7 +456,7 @@ Remaining headroom: **~3-6GB**
 
 ### Training Time Considerations
 
-For the ABEE deployment scenario:
+For the CLASP deployment scenario:
 - **Background scene reconstruction**: One-time, done offline (~1-5 minutes with fast 3DGS variants)
 - **Object-specific Gaussian templates**: Pre-built for known object categories
 - **Per-session adaptation**: 30-60 seconds if scene changes significantly
@@ -479,7 +479,7 @@ The RTX 4060 Ti (AD106 die) key specs for 3DGS workloads:
 
 **Key limitation**: The 128-bit memory bus is the primary bottleneck for 3DGS workloads, which are highly memory-bandwidth-bound. Rendering speed will be approximately 2-3x slower than RTX 4090 benchmarks published in papers.
 
-### Realistic Performance Estimates for ABEE
+### Realistic Performance Estimates for CLASP
 
 Adjusting published benchmarks for RTX 4060 Ti:
 
@@ -491,10 +491,10 @@ Adjusting published benchmarks for RTX 4060 Ti:
 | POGS pose tracking update | 50-100ms | 150-300ms |
 | Online SLAM mapping | 5-10 FPS | 3-5 FPS |
 
-**Rendering performance is adequate** for ABEE oracle purposes (40-70 FPS > 30 FPS target).
+**Rendering performance is adequate** for CLASP oracle purposes (40-70 FPS > 30 FPS target).
 **Pose tracking and SLAM** may be too slow for fully real-time operation at 30 FPS.
 
-### Recommended Configuration for ABEE RTX 4060 Ti
+### Recommended Configuration for CLASP RTX 4060 Ti
 
 1. Use **gsplat** (the CUDA-optimized Python library, used in Physically Embodied Gaussians) rather than the original graphdeco-inria CUDA rasterizer - typically 1.5-2x faster
 2. Limit Gaussian count: foreground objects in handoff scenes need at most 50K-200K Gaussians
@@ -517,7 +517,7 @@ Adjusting published benchmarks for RTX 4060 Ti:
 
 **Implementation path:**
 ```python
-# In abee_pkg/oracle.py
+# In clasp_pkg/oracle.py
 depth_prior = DepthAnythingV2(encoder='vitl').predict(frame)  # replace MiDaS
 gaussians = OnlineGaussianTracker.update(frame, depth_prior, camera_pose)
 metric_depth = gaussians.render_depth(camera)
@@ -532,7 +532,7 @@ surface_normals = gaussians.render_normals(camera)
 - Feed object pose stability (rate of change of pose) as a hard-veto signal
 - If object pose is rapidly changing or uncertain: veto to THINK
 - Cost: ~2GB VRAM, 150-300ms update latency (runs at 5-10 Hz)
-- Value: Direct measurement of "is the object stable in the transfer?" which is exactly what ABEE reasons about
+- Value: Direct measurement of "is the object stable in the transfer?" which is exactly what CLASP reasons about
 
 **Oracle hard-veto extension:**
 ```python
@@ -561,7 +561,7 @@ if object_pose_velocity > HANDOFF_STABILITY_THRESHOLD:
 
 ### Decision Matrix
 
-| Integration | Latency Added | VRAM Added | Engineering Effort | Value to ABEE | Recommendation |
+| Integration | Latency Added | VRAM Added | Engineering Effort | Value to CLASP | Recommendation |
 |---|---|---|---|---|---|
 | Depth Anything V2 (drop-in) | ~5ms | ~500MB | Low | Medium | Do now |
 | Online 3DGS depth refinement | ~15ms | ~1GB | Medium | High | Phase 1 |
@@ -583,9 +583,9 @@ Several areas have insufficient research for confident recommendations:
 
 4. **Compatibility with Cosmos-Reason2-8B**: No published work directly integrates GaussianVLM tokens with Cosmos-class models. The 132-token budget may need adjustment for Cosmos-Reason2's specific attention architecture.
 
-5. **Memory bandwidth bottleneck quantification**: The RTX 4060 Ti's 128-bit bus vs RTX 4090's 384-bit bus creates a 3x theoretical bandwidth deficit. The practical impact on 3DGS rendering framerate for ABEE-scale scenes (small tabletop, 50K-200K Gaussians) has not been benchmarked specifically.
+5. **Memory bandwidth bottleneck quantification**: The RTX 4060 Ti's 128-bit bus vs RTX 4090's 384-bit bus creates a 3x theoretical bandwidth deficit. The practical impact on 3DGS rendering framerate for CLASP-scale scenes (small tabletop, 50K-200K Gaussians) has not been benchmarked specifically.
 
-6. **Differentiable depth for life-points feedback**: Whether 3DGS depth uncertainty signals could be used as an additional signal for the ABEE Life-Points system (high depth uncertainty -> higher cost for ACT) is unexplored but theoretically motivated.
+6. **Differentiable depth for life-points feedback**: Whether 3DGS depth uncertainty signals could be used as an additional signal for the CLASP Life-Points system (high depth uncertainty -> higher cost for ACT) is unexplored but theoretically motivated.
 
 ---
 

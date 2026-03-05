@@ -1,5 +1,5 @@
-# ABEE — Complete System Documentation
-### Adversarial Blind Epistemic Ensemble — NVIDIA Cosmos Cookoff 2026
+# CLASP — Complete System Documentation
+### Cosmos Learning Agent Safety Protocol — NVIDIA Cosmos Cookoff 2026
 
 > **Scope:** End-to-end technical reference with architecture diagrams, data flows, and algorithm specifications.
 
@@ -7,7 +7,7 @@
 
 ## Table of Contents
 
-1. [What ABEE Does](#1-what-abee-does)
+1. [What CLASP Does](#1-what-clasp-does)
 2. [Top-Level Architecture](#2-top-level-architecture)
 3. [Per-Frame Processing Loop](#3-per-frame-processing-loop)
 4. [Agent Identity Matrix (P×T×M)](#4-agent-identity-matrix-ptm)
@@ -20,9 +20,9 @@
 
 ---
 
-## 1. What ABEE Does
+## 1. What CLASP Does
 
-ABEE answers one binary question per video frame:
+CLASP answers one binary question per video frame:
 
 > **Is it safe to release the object right now during a human-robot handoff?**
 
@@ -226,7 +226,7 @@ stateDiagram-v2
 flowchart TD
     subgraph LIVEKV["LiveKV — Redis (short-term)"]
         direction LR
-        R1["frame_N-W ... frame_N\nFIFO sliding window\nkey: abee:live:{traj_id}"]
+        R1["frame_N-W ... frame_N\nFIFO sliding window\nkey: clasp:live:{traj_id}"]
         R2["Per-agent stride slicing\nAlpha: every frame\nBeta: every 3rd\nGamma: every frame"]
         R1 --> R2
     end
@@ -332,7 +332,7 @@ flowchart TD
 
 ## 9. SFT Data Pipeline
 
-Every correct release generates a supervised fine-tuning record. This is the mechanism by which ABEE bootstraps training data from its own successful runs.
+Every correct release generates a supervised fine-tuning record. This is the mechanism by which CLASP bootstraps training data from its own successful runs.
 
 ```mermaid
 flowchart LR
@@ -399,7 +399,7 @@ All tunable parameters live in `configs/settings.py`. No values are scattered ac
 | `TAU_EARLY` | 3 | Frames before `t_release` still counted as safe |
 | `TAU_LATE` | 2 | Frames after `t_release` still counted as safe |
 | `USE_LOCAL_MODEL` | False | Local 4-bit Cosmos vs NIM API |
-| `ABEE_LOCAL_MODEL_PATH` | `models/cosmos-reason2-8b` | Override via env var |
+| `CLASP_LOCAL_MODEL_PATH` | `models/cosmos-reason2-8b` | Override via env var |
 
 ---
 
@@ -416,14 +416,14 @@ docker compose up -d redis
 export NGC_API_KEY=nvapi-YOUR-KEY
 
 # 4. Dry run — no API calls, synthetic data, instant results
-python run_abee.py --dry-run --trajectories 20
+python run_clasp.py --dry-run --trajectories 20
 
 # 5. Full run with live telemetry at http://localhost:8050
-python run_abee.py --trajectories 50 --dashboard
+python run_clasp.py --trajectories 50 --dashboard
 
 # 6. Local model instead of NIM (set env var for model path)
-export ABEE_LOCAL_MODEL_PATH=/path/to/cosmos-reason2-8b
-python run_abee.py --trajectories 50
+export CLASP_LOCAL_MODEL_PATH=/path/to/cosmos-reason2-8b
+python run_clasp.py --trajectories 50
 ```
 
 **Dry-run results (6 runs, 60+ trajectories):**

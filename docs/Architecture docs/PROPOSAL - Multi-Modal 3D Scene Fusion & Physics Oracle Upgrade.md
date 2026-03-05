@@ -4,15 +4,15 @@
 **Authors:** AJ  
 **Date:** 5 March 2026  
 **Classification:** Architecture Proposal (not yet merged into master system doc)  
-**Supersedes:** Partial sections of `System Architecture - ABEE.md` §Physics Oracle and §Sensor Modalities (if accepted)
+**Supersedes:** Partial sections of `System Architecture - CLASP.md` §Physics Oracle and §Sensor Modalities (if accepted)
 
 ---
 
 ## 0. Purpose and Scope
 
-This document proposes an **upgrade to the ABEE Physics Oracle layer** and the introduction of a **persistent 3D scene representation** as the primary geometric substrate for all oracle-derived signals.
+This document proposes an **upgrade to the CLASP Physics Oracle layer** and the introduction of a **persistent 3D scene representation** as the primary geometric substrate for all oracle-derived signals.
 
-The current oracle (`abee_pkg/oracle.py`) has three documented structural weaknesses (identified in the codebase audit, March 2026):
+The current oracle (`clasp_pkg/oracle.py`) has three documented structural weaknesses (identified in the codebase audit, March 2026):
 
 1. **SAM2 auto-segmentation assigns semantic labels by stability score** — "gripper", "object", "hand" label assignment is arbitrary and ungrounded.
 2. **MiDaS depth is monocular and relative** — metric clearance distances cannot be computed; depth is not integrated into the hard-veto logic.
@@ -28,7 +28,7 @@ This document is written as a basis for discussion. Nothing here is a committed 
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                ABEE Perception Pipeline (Proposed)             │
+│                CLASP Perception Pipeline (Proposed)             │
 ├─────────────────────────────────────────────────────────────────┤
 │  Layer 4 — VLM Agents (unchanged)                              │
 │    Cosmos-Reason2-8B × N, consuming oracle text block          │
@@ -338,7 +338,7 @@ These are the items that need a decision before any implementation begins:
 
 ### 4.1 SHARP licensing
 
-Apple ML Research licence is non-commercial research use. If ABEE is ever a component of a commercial product (physical robot deployment, licensing to a factory operator), SHARP cannot be the backbone. Do we care about this now, or is this a post-research concern?
+Apple ML Research licence is non-commercial research use. If CLASP is ever a component of a commercial product (physical robot deployment, licensing to a factory operator), SHARP cannot be the backbone. Do we care about this now, or is this a post-research concern?
 
 **Options:**
 - A) Use SHARP for research/competition, replace with nerfstudio splatfacto (Apache 2.0) if commercialisation is planned
@@ -360,7 +360,7 @@ The HC-SR04 needs physical attachment to the robot gripper or a fixed mount near
 
 ### 4.4 Factory digital twin scope
 
-The WiFi CSI / multi-room factory twin concept is architecturally distinct from the handoff oracle — it is a **separate system** that the oracle could eventually consume from. Should this be a separate project with its own document, or is it in scope for ABEE Phase 2+?
+The WiFi CSI / multi-room factory twin concept is architecturally distinct from the handoff oracle — it is a **separate system** that the oracle could eventually consume from. Should this be a separate project with its own document, or is it in scope for CLASP Phase 2+?
 
 ### 4.5 Neural Materials on 4060 Ti
 
@@ -370,7 +370,7 @@ RTX Neural Materials requires Shader Model 6.9 (DirectX Agility SDK preview). Th
 
 ## 5. What This Does Not Change
 
-To be explicit — the following ABEE components are **not affected** by this proposal:
+To be explicit — the following CLASP components are **not affected** by this proposal:
 
 - Agent architecture (blind ensemble, P×T×M asymmetry matrix)
 - Hyper-GRPO bandit policy
@@ -380,7 +380,7 @@ To be explicit — the following ABEE components are **not affected** by this pr
 - Consensus scoring and Life-Points mechanics
 - Dashboard telemetry
 
-This proposal only touches `abee_pkg/oracle.py` and the `ConstraintReport` data structure. The oracle output (an `oracle_text_block` string injected into agent prompts) remains structurally identical — it is just sourced from better data.
+This proposal only touches `clasp_pkg/oracle.py` and the `ConstraintReport` data structure. The oracle output (an `oracle_text_block` string injected into agent prompts) remains structurally identical — it is just sourced from better data.
 
 ---
 

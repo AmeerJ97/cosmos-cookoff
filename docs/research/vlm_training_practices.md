@@ -1,8 +1,8 @@
 # VLM Training Best Practices for Robotics
-## Research Synthesis for ABEE / Cosmos-Reason2-8B
+## Research Synthesis for CLASP / Cosmos-Reason2-8B
 
 **Research Date:** March 5, 2026
-**Target System:** ABEE — Adversarial Blind Epistemic Ensemble
+**Target System:** CLASP — Adversarial Blind Epistemic Ensemble
 **Model:** NVIDIA Cosmos-Reason2-8B (Qwen3-VL-Instruct base)
 **Task:** Stopping-time POMDP — predicting safe human-robot handoff release windows
 
@@ -27,7 +27,7 @@
    - 4.1 Safety-Critical Classification Metrics
    - 4.2 Temporal Accuracy Metrics
    - 4.3 Calibration Metrics
-   - 4.4 ABEE-Specific Metric Recommendations
+   - 4.4 CLASP-Specific Metric Recommendations
 5. [Training Infrastructure Patterns](#5-training-infrastructure-patterns)
    - 5.1 Reproducible Pipeline Architecture
    - 5.2 Experiment Tracking
@@ -35,9 +35,9 @@
    - 5.4 Distributed Training for 8B Models
 6. [Cloud Distillation](#6-cloud-distillation)
    - 6.1 Response Distillation vs Feature Distillation
-   - 6.2 Distillation Pipeline for ABEE
+   - 6.2 Distillation Pipeline for CLASP
    - 6.3 Quality Filtering and Data Curation
-7. [ABEE-Specific Recommendations](#7-abee-specific-recommendations)
+7. [CLASP-Specific Recommendations](#7-clasp-specific-recommendations)
 8. [Sources and References](#8-sources-and-references)
 9. [Methodology](#9-methodology)
 
@@ -45,11 +45,11 @@
 
 ## 1. Executive Summary
 
-This document synthesizes best practices for training, validating, and evaluating Vision-Language Models (VLMs) for robotics applications, with specific focus on the ABEE system using NVIDIA Cosmos-Reason2-8B. Key findings:
+This document synthesizes best practices for training, validating, and evaluating Vision-Language Models (VLMs) for robotics applications, with specific focus on the CLASP system using NVIDIA Cosmos-Reason2-8B. Key findings:
 
 **Dataset Design:** For an 8B VLM with a safety-critical binary decision task (THINK vs ACT), effective SFT is achievable with 500–2,000 high-quality labeled trajectory episodes. Temporal data requires episode-level (not frame-level) train/test splitting to prevent leakage. Standard k-fold is inappropriate; use expanding-window or group k-fold on episode IDs.
 
-**Fine-Tuning:** QLoRA (4-bit, rank 32–64) is the recommended approach for the RTX 4060 Ti 16GB constraint. The official Cosmos-Reason2 post-training pipeline uses LR 2e-7, cosine decay, and per-GPU batch size 32 with gradient accumulation 4. For ABEE's hardware (16GB VRAM), per-GPU batch size must be reduced to 1–2 with gradient accumulation 16–32.
+**Fine-Tuning:** QLoRA (4-bit, rank 32–64) is the recommended approach for the RTX 4060 Ti 16GB constraint. The official Cosmos-Reason2 post-training pipeline uses LR 2e-7, cosine decay, and per-GPU batch size 32 with gradient accumulation 4. For CLASP's hardware (16GB VRAM), per-GPU batch size must be reduced to 1–2 with gradient accumulation 16–32.
 
 **GRPO:** Cosmos-Reason2 uses cosmos-rl, NVIDIA's GRPO implementation for Physical AI. Binary verifiable rewards (correct ACT/THINK label) can be augmented with format rewards and partial credit for timing proximity. The SFT-then-GRPO two-stage pipeline (used by the base model) is the recommended approach.
 
@@ -92,13 +92,13 @@ VLM SFT datasets for robotics follow a **multimodal conversation format**. Each 
 }
 ```
 
-Key annotation fields for ABEE:
+Key annotation fields for CLASP:
 - **`episode_id`**: Critical for temporal split integrity — all frames from one episode must stay in one split
 - **`frame_index` and `total_frames`**: Enables temporal position encoding in prompts
 - **`ground_truth_release_frame`**: Required for temporal offset error metric
 - **`annotator`**: Tag whether labeled by physics oracle, human annotator, or cloud distillation (Claude)
 
-The OpenVLA paper (Kim et al., 2024) and its OFT follow-up (Kim, Finn & Liang, 2025) demonstrate that **chain-of-thought reasoning in the "gpt" turn** significantly improves performance over raw label-only SFT. The Cosmos-Reason2 model was itself post-trained on 3.7M VQA samples with explicit reasoning traces. ABEE's SFT data should include the full `<think>...</think>` reasoning chain, not just the final THINK/ACT label.
+The OpenVLA paper (Kim et al., 2024) and its OFT follow-up (Kim, Finn & Liang, 2025) demonstrate that **chain-of-thought reasoning in the "gpt" turn** significantly improves performance over raw label-only SFT. The Cosmos-Reason2 model was itself post-trained on 3.7M VQA samples with explicit reasoning traces. CLASP's SFT data should include the full `<think>...</think>` reasoning chain, not just the final THINK/ACT label.
 
 ### 2.2 Train/Validation/Test Split Strategies for Temporal Data
 
@@ -131,7 +131,7 @@ The 2025 literature on time series cross-validation (Analytics Vidhya, 2026) con
 
 **Recommended approaches:**
 
-**Option A — Group K-Fold (preferred for ABEE)**
+**Option A — Group K-Fold (preferred for CLASP)**
 Use `sklearn.model_selection.GroupKFold` with `groups=episode_ids`. This ensures all frames from the same episode stay in one fold, preventing within-episode leakage. With 5 folds, each fold uses 80% of episodes for training and 20% for validation.
 
 ```python
@@ -146,15 +146,15 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(X, y, groups=episode_ids))
 **Option B — Expanding Window Split (for temporal generalization testing)**
 Train on episodes 1 through N, validate on episodes N+1 through N+K, then expand. This tests whether the model generalizes forward in time — most relevant for deployment robustness.
 
-**Is k-fold worth the compute cost for ABEE?**
-Given that full Cosmos-Reason2-8B fine-tuning is expensive (even with QLoRA), running 5 folds is costly. Recommendation: Use a single fixed episode-level split for iterative development, and run 3-fold group cross-validation only for final model selection before the test set evaluation. The ABEE validation set serves primarily as early stopping signal, not as a hyperparameter tuning oracle.
+**Is k-fold worth the compute cost for CLASP?**
+Given that full Cosmos-Reason2-8B fine-tuning is expensive (even with QLoRA), running 5 folds is costly. Recommendation: Use a single fixed episode-level split for iterative development, and run 3-fold group cross-validation only for final model selection before the test set evaluation. The CLASP validation set serves primarily as early stopping signal, not as a hyperparameter tuning oracle.
 
 ### 2.4 Data Augmentation Strategies for Robotic Manipulation Videos
 
 Augmentation falls into three categories for VLM training:
 
 **Visual/Spatial Augmentations (applied to frames before tokenization):**
-| Technique | Benefit | ABEE Relevance | Notes |
+| Technique | Benefit | CLASP Relevance | Notes |
 |-----------|---------|----------------|-------|
 | Random crop + resize | Viewpoint robustness | High | Preserves relative hand position |
 | Color jitter (brightness, contrast) | Lighting invariance | High | Different lab conditions |
@@ -169,15 +169,15 @@ Augmentation falls into three categories for VLM training:
 - **Speed perturbation:** Time-stretch/compress video by ±20% using interpolation
 
 **Generative Augmentations (emerging, 2025):**
-The paper "Generative Spatiotemporal Data Augmentation" (arXiv:2512.12508, 2025) demonstrates that video diffusion models can generate realistic viewpoint and scene variations from a single trajectory. H2R (ICLR 2025) converts human-hand operation videos into robot-centric data. For ABEE, these are worth investigating when the labeled dataset is small (<200 episodes).
+The paper "Generative Spatiotemporal Data Augmentation" (arXiv:2512.12508, 2025) demonstrates that video diffusion models can generate realistic viewpoint and scene variations from a single trajectory. H2R (ICLR 2025) converts human-hand operation videos into robot-centric data. For CLASP, these are worth investigating when the labeled dataset is small (<200 episodes).
 
-**Augmentations to AVOID for ABEE:**
+**Augmentations to AVOID for CLASP:**
 - Any augmentation that destroys depth cues (depth information is the physics oracle's primary signal)
 - Temporal reversal (backward trajectories are physically meaningless for handoff prediction)
 - Aggressive color shifts that alter skin tone discrimination (relevant for hand detection)
 
 **Text-side augmentations:**
-Vary the prompt template across training samples (see the ABEE 4-prompt x 3-temporal x 3-modality asymmetry matrix). This is already encoded in the Hyper-GRPO identity design and should be reflected in the SFT dataset — each sample should use one of the prompt variants, so the model becomes robust to all of them.
+Vary the prompt template across training samples (see the CLASP 4-prompt x 3-temporal x 3-modality asymmetry matrix). This is already encoded in the Hyper-GRPO identity design and should be reflected in the SFT dataset — each sample should use one of the prompt variants, so the model becomes robust to all of them.
 
 ### 2.5 Minimum Data Requirements for 8B VLM SFT
 
@@ -191,7 +191,7 @@ Vary the prompt template across training samples (see the ABEE 4-prompt x 3-temp
 
 The particula.tech 2026 analysis of LLM data scaling finds that "LoRA 8B still performs better than SFT 2B at adapting to the target dataset despite requiring less GPU resources" — meaning the 8B model parameter count partially compensates for limited data through stronger priors.
 
-**For ABEE's specific task (binary stop/go prediction from video):**
+**For CLASP's specific task (binary stop/go prediction from video):**
 
 The task is structurally similar to a binary classification with temporal context. Based on OpenVLA-OFT (Kim, Finn & Liang, 2025) which fine-tuned a 7B VLA from 76.5% to 97.1% success on LIBERO using task-specific data, the critical factor is **quality over quantity**.
 
@@ -206,7 +206,7 @@ Recommended dataset targets:
 3. Hard negative examples: frames that look safe but are not (teaches caution)
 4. Diverse episode conditions (multiple operators, lighting, object types)
 
-The Cosmos-Reason2 base model was post-trained on 3.7M VQA samples. ABEE's domain-specific SFT operates on top of this foundation, so the base model already has strong physical common sense. The SFT layer only needs to teach the specific THINK/ACT decision grammar and handoff-specific safety reasoning.
+The Cosmos-Reason2 base model was post-trained on 3.7M VQA samples. CLASP's domain-specific SFT operates on top of this foundation, so the base model already has strong physical common sense. The SFT layer only needs to teach the specific THINK/ACT decision grammar and handoff-specific safety reasoning.
 
 ---
 
@@ -214,16 +214,16 @@ The Cosmos-Reason2 base model was post-trained on 3.7M VQA samples. ABEE's domai
 
 ### 3.1 LoRA vs QLoRA vs Full Fine-Tuning
 
-**Hardware constraint for ABEE:** RTX 4060 Ti 16GB
+**Hardware constraint for CLASP:** RTX 4060 Ti 16GB
 
 | Method | VRAM (8B model) | Quality | Speed | Recommendation |
 |--------|-----------------|---------|-------|----------------|
 | Full fine-tuning (bf16) | ~80GB | Highest | Slowest | Not feasible on 16GB |
 | LoRA (bf16, r=32) | ~24–32GB | High | Fast | Not feasible on 16GB |
-| QLoRA (4-bit NF4, r=32) | ~10–14GB | Good (80–90% of full FT) | Moderate | **Recommended for ABEE** |
+| QLoRA (4-bit NF4, r=32) | ~10–14GB | Good (80–90% of full FT) | Moderate | **Recommended for CLASP** |
 | QLoRA (4-bit NF4, r=16) | ~8–10GB | Acceptable | Fastest | Minimum viable |
 
-**QLoRA configuration for ABEE (RTX 4060 Ti 16GB):**
+**QLoRA configuration for CLASP (RTX 4060 Ti 16GB):**
 
 ```python
 from peft import LoraConfig
@@ -276,12 +276,12 @@ Stage 2: GRPO with verifiable rewards
 
 The NVIDIA Cosmos-Reason2 technical blog confirms: "Fine-tuning on physical AI tasks boosts Cosmos Reason's base model performance by over 10%, with reinforcement learning adding another 5% gain."
 
-**Reward function design for ABEE:**
+**Reward function design for CLASP:**
 
 Binary rewards alone cause reward sparsity — groups where all G samples get the same reward produce zero advantage, wasting compute. The 2025 literature on GRPO reward design recommends a composite reward:
 
 ```python
-def abee_reward(response: str, ground_truth: str, frame_idx: int,
+def clasp_reward(response: str, ground_truth: str, frame_idx: int,
                 release_frame: int) -> float:
     reward = 0.0
 
@@ -312,7 +312,7 @@ def abee_reward(response: str, ground_truth: str, frame_idx: int,
     return reward
 ```
 
-**Key design principle:** The asymmetric penalty aligns the GRPO reward with the ABEE Life-Points system — false ACT early in a trajectory is more dangerous than false THINK.
+**Key design principle:** The asymmetric penalty aligns the GRPO reward with the CLASP Life-Points system — false ACT early in a trajectory is more dangerous than false THINK.
 
 **Practical GRPO setup with TRL:**
 ```python
@@ -332,13 +332,13 @@ grpo_config = GRPOConfig(
 
 **VLA-R1 paper (Ye et al., 2025, arXiv:2510.01623)** is directly relevant — they apply GRPO to a Vision-Language-Action model with verifiable rewards for trajectory consistency and output formatting, achieving strong generalization on both in-domain and out-of-domain robot platforms.
 
-**TON (Wang et al., 2025, arXiv:2505.16854)** introduces "thought dropout" during SFT as a cold-start for selective reasoning — randomly replace reasoning traces with empty thoughts during Stage 1. This teaches the model to choose when deep reasoning is worth the token cost. For ABEE's THINK decision (which requires reasoning) vs ACT (which requires confidence), this is directly applicable.
+**TON (Wang et al., 2025, arXiv:2505.16854)** introduces "thought dropout" during SFT as a cold-start for selective reasoning — randomly replace reasoning traces with empty thoughts during Stage 1. This teaches the model to choose when deep reasoning is worth the token cost. For CLASP's THINK decision (which requires reasoning) vs ACT (which requires confidence), this is directly applicable.
 
 ### 3.3 Hyperparameters: Learning Rate, Batch Size, Gradient Accumulation
 
 **Official Cosmos-Reason2 post-training hyperparameters** (from the AV captioning cookbook recipe):
 
-| Parameter | Official Value | ABEE Adaptation (16GB) |
+| Parameter | Official Value | CLASP Adaptation (16GB) |
 |-----------|---------------|------------------------|
 | Learning rate | 2e-7 | 1e-6 to 2e-6 (QLoRA adapters train faster) |
 | LR schedule | Cosine annealing | Cosine annealing |
@@ -358,7 +358,7 @@ grpo_config = GRPOConfig(
 
 **Batch size guidance:**
 - Effective batch size (batch_size × grad_accum) should be at least 32 for stable gradients
-- For ABEE at 16GB: 2 (batch) × 16 (accum) = 32 effective samples minimum
+- For CLASP at 16GB: 2 (batch) × 16 (accum) = 32 effective samples minimum
 - Frame-packing (combining multiple short context windows into one batch item) can increase throughput
 
 ### 3.4 Mixed Precision and Memory Optimization
@@ -367,13 +367,13 @@ grpo_config = GRPOConfig(
 - **Use bf16** for Cosmos-Reason2 (Qwen3-VL base). bf16 has wider dynamic range than fp16, reducing gradient underflow on large models. The official pipeline specifies bf16.
 - fp16 requires loss scaling to prevent underflow; bf16 does not. At 16GB VRAM on consumer hardware, bf16 is preferred.
 
-**Memory optimization stack for ABEE (in order of impact):**
+**Memory optimization stack for CLASP (in order of impact):**
 
 1. **4-bit NF4 quantization** (QLoRA) — reduces model size from ~16GB to ~4GB
 2. **Gradient checkpointing** — trades 20% compute for ~30% activation memory reduction
 3. **Paged AdamW** optimizer — offloads optimizer states to CPU when GPU memory spikes
 4. **Flash Attention 2** — reduces attention memory from O(n²) to O(n), enables longer sequences
-5. **Activation offloading** — moves unused activations to CPU RAM (96GB available on ABEE hardware)
+5. **Activation offloading** — moves unused activations to CPU RAM (96GB available on CLASP hardware)
 
 **Recommended optimizer:** `paged_adamw_8bit` from bitsandbytes for QLoRA training. Reduces optimizer state VRAM by 75% while maintaining numerical stability.
 
@@ -409,7 +409,7 @@ training_args = TrainingArguments(
 
 ### 4.1 Safety-Critical Classification Metrics
 
-For ABEE's binary ACT/THINK prediction, raw accuracy is insufficient. The full metric suite:
+For CLASP's binary ACT/THINK prediction, raw accuracy is insufficient. The full metric suite:
 
 **Confusion Matrix Breakdown:**
 ```
@@ -426,7 +426,7 @@ Actual ACT:        FN           |      TP  (correct release)
 
 **Primary metrics:**
 
-| Metric | Formula | Target | ABEE Priority |
+| Metric | Formula | Target | CLASP Priority |
 |--------|---------|--------|---------------|
 | **ACT Precision** | TP / (TP + FP) | > 0.95 | Critical — measures premature release rate |
 | **ACT Recall** | TP / (TP + FN) | > 0.80 | Important — measures window utilization |
@@ -438,11 +438,11 @@ Actual ACT:        FN           |      TP  (correct release)
 **Why F-beta with β=0.5 (not F1)?**
 F-beta with β < 1 weights precision more heavily than recall. Given that premature release is dangerous, we prioritize precision. F0.5 is `(1 + 0.25) * precision * recall / (0.25 * precision + recall)`.
 
-**Calibrated Safe Prediction (from arXiv:2508.09346, 2025):** Recent work specifically addresses calibration guarantees for image-controlled autonomous systems, noting that distribution shift over prediction horizons causes safety evaluators to produce overconfident outputs. This is directly applicable to ABEE — the model should know when it doesn't know.
+**Calibrated Safe Prediction (from arXiv:2508.09346, 2025):** Recent work specifically addresses calibration guarantees for image-controlled autonomous systems, noting that distribution shift over prediction horizons causes safety evaluators to produce overconfident outputs. This is directly applicable to CLASP — the model should know when it doesn't know.
 
 ### 4.2 Temporal Accuracy Metrics
 
-Because ABEE is a **stopping-time prediction** problem, correctness is not binary — it matters **when** the model correctly predicts ACT relative to the ground-truth release frame.
+Because CLASP is a **stopping-time prediction** problem, correctness is not binary — it matters **when** the model correctly predicts ACT relative to the ground-truth release frame.
 
 **Temporal Offset Error (TOE):**
 ```
@@ -470,7 +470,7 @@ For each test episode, compute the full ACT probability curve across all frames 
 
 ### 4.3 Calibration Metrics
 
-**Why calibration matters for ABEE:** The agent outputs THINK or ACT, but the underlying model produces a probability. If the model says "90% confident this is ACT" but is actually right only 60% of the time at that confidence level, it is miscalibrated — and a dangerous partner for a safety-critical system.
+**Why calibration matters for CLASP:** The agent outputs THINK or ACT, but the underlying model produces a probability. If the model says "90% confident this is ACT" but is actually right only 60% of the time at that confidence level, it is miscalibrated — and a dangerous partner for a safety-critical system.
 
 **Expected Calibration Error (ECE):**
 ```
@@ -491,13 +491,13 @@ Lower ECE = better calibrated. A perfectly calibrated model has ECE = 0.
 
 **Reliability diagram:** Plot mean predicted probability (x-axis) vs observed accuracy (y-axis) per bin. A perfectly calibrated model produces a diagonal line. Deviations above the diagonal = overconfident; below = underconfident.
 
-**For ABEE:** A slightly underconfident model (biased toward THINK) is preferable to an overconfident one (biased toward ACT). Consider applying **temperature scaling** post-training with T > 1 to reduce overconfidence.
+**For CLASP:** A slightly underconfident model (biased toward THINK) is preferable to an overconfident one (biased toward ACT). Consider applying **temperature scaling** post-training with T > 1 to reduce overconfidence.
 
 **Additional calibration metrics:**
 - **Maximum Calibration Error (MCE):** max over bins of |acc - conf| — captures worst-case miscalibration
 - **Brier Score:** mean((p_predicted - y_actual)²) — proper scoring rule that jointly measures accuracy and calibration
 
-### 4.4 ABEE-Specific Metric Recommendations
+### 4.4 CLASP-Specific Metric Recommendations
 
 **Primary evaluation dashboard (in priority order):**
 
@@ -509,7 +509,7 @@ Lower ECE = better calibrated. A perfectly calibrated model has ECE = 0.
 6. Mean TOE (bias measurement)
 7. F-beta (β=0.5) score
 
-**Per-agent metrics:** Because ABEE has 4 agents with different asymmetry parameters, evaluate each agent's metric suite independently. An agent with SAFETY-FIRST temporal weighting should have near-zero premature release rate at the cost of higher FN rate.
+**Per-agent metrics:** Because CLASP has 4 agents with different asymmetry parameters, evaluate each agent's metric suite independently. An agent with SAFETY-FIRST temporal weighting should have near-zero premature release rate at the cost of higher FN rate.
 
 **Ensemble metrics:** Track the consensus agreement rate and the correlation between individual agent confidence and ensemble correctness.
 
@@ -565,7 +565,7 @@ def set_all_seeds(seed: int = 42):
 
 ### 5.2 Experiment Tracking
 
-**W&B (Weights & Biases) — recommended for ABEE:**
+**W&B (Weights & Biases) — recommended for CLASP:**
 - Superior artifact management for large model checkpoints vs MLflow
 - Native VLM image logging (log sample predictions with ground truth during validation)
 - Built-in sweep functionality for hyperparameter search
@@ -586,7 +586,7 @@ def set_all_seeds(seed: int = 42):
 import wandb
 
 wandb.init(
-    project="abee-cosmos-reason2",
+    project="clasp-cosmos-reason2",
     config={
         "model": "cosmos-reason2-8b",
         "lora_rank": 32,
@@ -632,7 +632,7 @@ if premature_rate < best_premature_rate:
     best_premature_rate = premature_rate
 ```
 
-**Early stopping for ABEE:**
+**Early stopping for CLASP:**
 
 Standard early stopping on validation loss is not optimal for safety-critical systems. Use patience-based stopping on **ACT precision**:
 
@@ -656,11 +656,11 @@ class SafetyAwareEarlyStopping:
 
 **Checkpoint selection at deployment:** Do NOT use the final checkpoint. Use the checkpoint with the best validation ACT precision (safety metric), not best overall loss or accuracy.
 
-The Official Cosmos-Reason2 cookbook saves every 20 steps. For ABEE with smaller datasets, save every 50 steps with the best-metric checkpoint tracked separately.
+The Official Cosmos-Reason2 cookbook saves every 20 steps. For CLASP with smaller datasets, save every 50 steps with the best-metric checkpoint tracked separately.
 
 ### 5.4 Distributed Training Considerations for 8B Models
 
-**For ABEE's single-GPU 16GB constraint:** Full distributed training is not feasible. However, CPU offloading via DeepSpeed ZeRO-3 or FSDP can leverage ABEE's 96GB DDR5 RAM:
+**For CLASP's single-GPU 16GB constraint:** Full distributed training is not feasible. However, CPU offloading via DeepSpeed ZeRO-3 or FSDP can leverage CLASP's 96GB DDR5 RAM:
 
 ```python
 # DeepSpeed ZeRO-Infinity config for CPU offloading
@@ -674,9 +674,9 @@ The Official Cosmos-Reason2 cookbook saves every 20 steps. For ABEE with smaller
 }
 ```
 
-ZeRO-3 with CPU offload can reduce GPU VRAM usage to ~4–6GB for 8B model parameters at the cost of 3–5x slower training (CPU-GPU data transfer bottleneck). For ABEE's 16GB GPU, this enables slightly larger batch sizes but is likely slower than QLoRA which avoids CPU offload entirely.
+ZeRO-3 with CPU offload can reduce GPU VRAM usage to ~4–6GB for 8B model parameters at the cost of 3–5x slower training (CPU-GPU data transfer bottleneck). For CLASP's 16GB GPU, this enables slightly larger batch sizes but is likely slower than QLoRA which avoids CPU offload entirely.
 
-**Recommended for ABEE:** Stick with QLoRA on the single RTX 4060 Ti 16GB. If training time becomes a bottleneck, consider renting a cloud GPU (A100 40GB or H100 80GB) for the GRPO stage which is more memory-intensive.
+**Recommended for CLASP:** Stick with QLoRA on the single RTX 4060 Ti 16GB. If training time becomes a bottleneck, consider renting a cloud GPU (A100 40GB or H100 80GB) for the GRPO stage which is more memory-intensive.
 
 ---
 
@@ -689,7 +689,7 @@ ZeRO-3 with CPU offload can reduce GPU VRAM usage to ~4–6GB for 8B model param
 **Response Distillation (Black-Box):**
 The teacher model (Claude 3.5 Sonnet / Opus 4) receives video frames and a prompt, then generates full reasoning traces + labels. These teacher outputs become the student (Cosmos-Reason2-8B) SFT labels. No access to teacher model internals required.
 
-**Advantages for ABEE:**
+**Advantages for CLASP:**
 - Works with API-only teacher models (Claude via Anthropic API)
 - Generates rich CoT reasoning traces that teach the student how to reason
 - Can target specific failure modes (see EvoKD below)
@@ -697,9 +697,9 @@ The teacher model (Claude 3.5 Sonnet / Opus 4) receives video frames and a promp
 **Feature Distillation (White-Box):**
 Match intermediate layer activations between teacher and student. Requires access to teacher model weights. Not applicable when teacher is accessed via API.
 
-**Recommendation for ABEE:** Use **response distillation** with Claude as teacher. This is the same approach used in Cosmos-Reason2's own post-training — the model's 24.7K video VQA samples had "reasoning traces distilled from DeepSeek-R1."
+**Recommendation for CLASP:** Use **response distillation** with Claude as teacher. This is the same approach used in Cosmos-Reason2's own post-training — the model's 24.7K video VQA samples had "reasoning traces distilled from DeepSeek-R1."
 
-### 6.2 Distillation Pipeline for ABEE
+### 6.2 Distillation Pipeline for CLASP
 
 **Pipeline architecture:**
 
@@ -780,7 +780,7 @@ def is_high_quality_trace(trace: str) -> bool:
     return keyword_count >= 2 and word_count >= 30
 ```
 
-**Dataset weight mixing:** The official Cosmos-Reason2 pipeline uses `[0.3, 0.5, 0.2]` weights for cv_annotated, human_annotated, and reasoning_sft respectively. For ABEE:
+**Dataset weight mixing:** The official Cosmos-Reason2 pipeline uses `[0.3, 0.5, 0.2]` weights for cv_annotated, human_annotated, and reasoning_sft respectively. For CLASP:
 - Human-verified hard cases: weight 0.5
 - Claude-distilled synthetic samples: weight 0.3
 - Physics-oracle-only (no reasoning trace): weight 0.2
@@ -789,18 +789,18 @@ def is_high_quality_trace(trace: str) -> bool:
 
 ---
 
-## 7. ABEE-Specific Recommendations
+## 7. CLASP-Specific Recommendations
 
 ### Immediate Priorities (P0 alignment with current implementation status)
 
 **1. SFT Dataset Schema**
-Implement the annotation schema from Section 2.1 immediately. Key additions beyond current `abee_pkg/local_inference.py` output:
+Implement the annotation schema from Section 2.1 immediately. Key additions beyond current `clasp_pkg/local_inference.py` output:
 - Add `ground_truth_release_frame` field to all samples
 - Add `annotator` provenance field
 - Store full `<think>` reasoning traces, not just final labels
 
 **2. Episode-level data splitting**
-Current `abee_pkg` has data_loader — ensure it splits by `episode_id` not by frame. Temporal leakage will cause falsely optimistic validation metrics.
+Current `clasp_pkg` has data_loader — ensure it splits by `episode_id` not by frame. Temporal leakage will cause falsely optimistic validation metrics.
 
 **3. QLoRA training script**
 For the RTX 4060 Ti 16GB:
@@ -819,7 +819,7 @@ Flash Attention 2: enabled
 **4. Safety-first evaluation**
 Primary early stopping criterion: validation ACT Precision > 0.95. Never deploy a checkpoint where premature release rate exceeds 5%.
 
-### Integration with ABEE's Hyper-GRPO System
+### Integration with CLASP's Hyper-GRPO System
 
 The 36-identity asymmetry matrix (4 prompts × 3 temporal × 3 modality) creates natural **multi-prompt diversity** in the SFT dataset. Include samples from all 36 identity variants to ensure the SFT model generalizes across prompt styles before GRPO training begins.
 
@@ -829,8 +829,8 @@ During GRPO: the Life-Points system provides natural reward signal structure. Th
 
 - The model is based on **Qwen3-VL-Instruct** — all Qwen3-VL fine-tuning recipes apply
 - The cosmos-rl repository (github.com/nvidia-cosmos/cosmos-reason2) provides the official GRPO implementation
-- Maximum pixels per frame is set to 360,000 (~600×600) in the official pipeline; ABEE can use up to 81,920 per the dataset config, which reduces VRAM at the cost of visual detail
-- Frame rate of 1 FPS is used in the official pipeline — ABEE's 30FPS video should be subsampled to 1–2 FPS for training to match the pretraining distribution
+- Maximum pixels per frame is set to 360,000 (~600×600) in the official pipeline; CLASP can use up to 81,920 per the dataset config, which reduces VRAM at the cost of visual detail
+- Frame rate of 1 FPS is used in the official pipeline — CLASP's 30FPS video should be subsampled to 1–2 FPS for training to match the pretraining distribution
 
 ---
 
@@ -913,7 +913,7 @@ During GRPO: the Life-Points system provides natural reward signal structure. Th
 **Areas of uncertainty / insufficient data:**
 - Exact VRAM consumption of Cosmos-Reason2-8B in QLoRA training mode (varies by sequence length, frame resolution)
 - Optimal LoRA rank for this specific task (empirical tuning required; r=32 is a well-supported starting point)
-- Minimum viable dataset size for ABEE's specific stopping-time task (robotics literature suggests 500+ episodes; the exact number requires empirical validation)
+- Minimum viable dataset size for CLASP's specific stopping-time task (robotics literature suggests 500+ episodes; the exact number requires empirical validation)
 - Claude API throughput and cost for large-scale distillation (rate limits not characterized for batch annotation jobs)
 
 **Conflicts noted:**

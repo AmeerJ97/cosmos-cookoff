@@ -1,5 +1,5 @@
 """
-ABEE Data Models — Pydantic schemas for agent decisions, state, and SFT records.
+CLASP Data Models — Pydantic schemas for agent decisions, state, and SFT records.
 """
 from __future__ import annotations
 from pydantic import BaseModel, Field, field_validator

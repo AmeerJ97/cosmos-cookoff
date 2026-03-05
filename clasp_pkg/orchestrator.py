@@ -1,5 +1,5 @@
 """
-ABEE Main Orchestrator — asyncio game loop.
+CLASP Main Orchestrator — asyncio game loop.
 Processes trajectories frame-by-frame, dispatches blind agents,
 evaluates kinematic safety, manages dual-cache memory.
 
@@ -33,7 +33,7 @@ from configs.settings import (
     L_MAX,
 )
 
-log = logging.getLogger("abee.orchestrator")
+log = logging.getLogger("clasp.orchestrator")
 
 
 # ── Telemetry callback type ──────────────────────────────────────────────────
@@ -496,7 +496,7 @@ class Orchestrator:
         respawns = sum(r.agent_respawns for r in self.results)
 
         print(f"\n{'='*60}")
-        print(f"ABEE RESULTS — {total} trajectories")
+        print(f"CLASP RESULTS — {total} trajectories")
         print(f"  Correct releases:   {correct:3d} ({100*correct/max(total,1):.1f}%)")
         print(f"  Premature releases: {premature:3d} ({100*premature/max(total,1):.1f}%)")
         print(f"  Late releases:      {late:3d} ({100*late/max(total,1):.1f}%)")

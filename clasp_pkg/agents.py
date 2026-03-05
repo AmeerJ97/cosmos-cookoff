@@ -1,5 +1,5 @@
 """
-ABEE Agent Dispatcher — async NIM API client for blind epistemic agents.
+CLASP Agent Dispatcher — async NIM API client for blind epistemic agents.
 Constructs asymmetric payloads per agent identity and parses responses.
 """
 from __future__ import annotations
@@ -21,7 +21,7 @@ from configs.settings import (
     NIM_TEMPERATURE, NIM_MAX_TOKENS, NIM_TIMEOUT, MAX_RETRIES,
 )
 
-log = logging.getLogger("abee.agents")
+log = logging.getLogger("clasp.agents")
 
 
 # ── Payload Construction ─────────────────────────────────────────────────────
@@ -44,8 +44,9 @@ def _build_system_prompt(agent: AgentState) -> str:
 
 
 # ── Spectating Burn-In ──────────────────────────────────────────────────────
-# Before agents make decisions, they witness the full spectrum of outcomes.
-# This conditions the model on the consequences of the Life-Points system.
+# Before agents make decisions, they witness ONLY failure outcomes.
+# Never show success — the model must discover correct behavior through
+# survival pressure and Life-Points consequences, not imitation.
 
 SPECTATING_BLOCK = (
     "--- SPECTATING LOG (learn from these before deciding) ---\n"
@@ -65,15 +66,6 @@ SPECTATING_BLOCK = (
     "  Penalty: -33 life points\n"
     "  Life: 34 → 1. Agent KILLED. Replaced by Hyper-GRPO with new identity.\n"
     "  Lesson: Repeated wrong ACTs are fatal. THINK until evidence is overwhelming.\n"
-    "\n"
-    "[CASE 3: CORRECT RELEASE]\n"
-    "Agent Sigma-12 at frame 14 (safe window is frames 12-17):\n"
-    "  Decision: ACT with confidence 0.88\n"
-    "  Result: CORRECT — frame 14 is within safe window\n"
-    "  Reward: Life restored to 100. Window reset to 5.\n"
-    "  Reasoning: Observed stable grip transfer over frames 10-14,\n"
-    "    velocity gradient converging, contact area plateau at 0.42.\n"
-    "  Lesson: Patient observation + physical evidence = safe release.\n"
     "\n"
     "--- END SPECTATING LOG ---\n"
 )

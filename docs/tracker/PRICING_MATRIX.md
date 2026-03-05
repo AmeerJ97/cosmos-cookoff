@@ -1,4 +1,4 @@
-# ABEE Cloud Pricing Matrix
+# CLASP Cloud Pricing Matrix
 
 Last updated: 2026-03-05
 
@@ -42,7 +42,7 @@ Last updated: 2026-03-05
 | **Google Cloud** | L4 24GB | ~$0.70/hr (spot $0.24) | Good for eval, light QLoRA |
 | **Google Cloud** | T4 16GB | ~$0.35/hr (spot $0.11) | Inference only |
 
-## Estimated Training Costs for ABEE
+## Estimated Training Costs for CLASP
 
 ### Scenario 1: Budget QLoRA ($25-50)
 

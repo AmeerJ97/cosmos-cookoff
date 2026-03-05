@@ -1,4 +1,4 @@
-# ABEE Next Stages: Design Proposal
+# CLASP Next Stages: Design Proposal
 
 ## Table of Contents
 1. [Training Pipeline Design](#1-training-pipeline-design)
@@ -19,7 +19,7 @@ NVIDIA provides **Cosmos-RL**, an async post-training framework purpose-built fo
 - GRPO (Group Relative Policy Optimization) — available for Reason1, coming for Reason2
 - LoRA parameter-efficient fine-tuning
 
-**Key reference:** The [Physical Plausibility Prediction recipe](https://nvidia-cosmos.github.io/cosmos-cookbook/recipes/post_training/reason1/physical-plausibility-check/post_training.html) from the Cosmos Cookbook is the closest analog to ABEE's task. It trains Cosmos-Reason to evaluate video for physical plausibility using SFT + GRPO.
+**Key reference:** The [Physical Plausibility Prediction recipe](https://nvidia-cosmos.github.io/cosmos-cookbook/recipes/post_training/reason1/physical-plausibility-check/post_training.html) from the Cosmos Cookbook is the closest analog to CLASP's task. It trains Cosmos-Reason to evaluate video for physical plausibility using SFT + GRPO.
 
 #### Dataset Format (LLaVA-style)
 
@@ -47,12 +47,12 @@ NVIDIA provides **Cosmos-RL**, an async post-training framework purpose-built fo
 
 **Critical: fps=4** — Cosmos-Reason2 was trained at 4 FPS. All video inputs must match this.
 
-#### ABEE SFT Dataset → Cosmos-RL Format
+#### CLASP SFT Dataset → Cosmos-RL Format
 
 Our existing `SFTSerializer` outputs JSONL. The conversion pipeline:
 
 ```
-ABEE dry-run/real runs
+CLASP dry-run/real runs
   → SFT records (data/sft_dataset.jsonl)
     → Convert to LLaVA conversations format
       → Split train/val/test
@@ -61,15 +61,15 @@ ABEE dry-run/real runs
 
 **Data volume estimate:** At 50 trajectories × 20 frames × 4 agents = ~4,000 decision records per run. Need ~10-20 runs for a viable SFT dataset (~40K-80K records). Golden-only filtering reduces this to ~25% (correct ACTs).
 
-#### TOML Configuration for ABEE SFT
+#### TOML Configuration for CLASP SFT
 
 ```toml
 [custom.dataset]
-path = "data/abee_sft_train"
+path = "data/clasp_sft_train"
 
 [train]
 epoch = 5
-output_dir = "outputs/abee_sft"
+output_dir = "outputs/clasp_sft"
 train_batch_per_replica = 16
 
 [policy]
@@ -102,18 +102,18 @@ This mirrors the Life-Points system directly. Reference: VLA-R1 (arXiv:2510.0162
 
 **Two-stage pipeline:** SFT cold-start → GRPO. NVIDIA used this exact approach: +10% from SFT, +5% from RL.
 
-#### GRPO Configuration for ABEE RL
+#### GRPO Configuration for CLASP RL
 
 ```toml
 [custom.dataset]
-path = "data/abee_grpo_train"
+path = "data/clasp_grpo_train"
 
 [train]
 epoch = 3
-output_dir = "outputs/abee_grpo"
+output_dir = "outputs/clasp_grpo"
 
 [policy]
-model_name_or_path = "outputs/abee_sft/checkpoints/latest/policy"
+model_name_or_path = "outputs/clasp_sft/checkpoints/latest/policy"
 model_max_length = 6144
 
 [train.train_policy]
@@ -185,7 +185,7 @@ Video frames → Claude 3.5 Sonnet (vision) → rich reasoning traces
 import vertexai
 from vertexai.generative_models import GenerativeModel
 
-vertexai.init(project="abee-project", location="us-central1")
+vertexai.init(project="clasp-project", location="us-central1")
 model = GenerativeModel("claude-3-5-sonnet@20240620")
 
 response = model.generate_content([
@@ -205,7 +205,7 @@ NIM officially supports Cosmos-Reason2-8B (>56GB VRAM, BF16). For fine-tuned mod
 
 **What it is:** NVIDIA-acquired GPU cloud platform that aggregates GPUs from multiple providers. One-click deployment with pre-configured environments.
 
-**Key advantages for ABEE:**
+**Key advantages for CLASP:**
 - Direct integration with NVIDIA NGC catalog (NIM, NeMo, Cosmos models)
 - Pre-configured CUDA, PyTorch, Jupyter environments
 - CLI-based workflow: `brev shell <instance>` or `brev open <instance>` (VS Code)
@@ -221,7 +221,7 @@ NIM officially supports Cosmos-Reason2-8B (>56GB VRAM, BF16). For fine-tuned mod
 
 **Key insight:** Cosmos-Reason2-8B is based on **Qwen3-VL-8B-Instruct**, so any Qwen3-VL-compatible training framework works (TRL SFTTrainer, cosmos-rl, NeMo).
 
-**For ABEE SFT (8B model):**
+**For CLASP SFT (8B model):**
 - Budget: 1× A100 40GB QLoRA (4-bit, r=16) — ~$1.10-3.67/hr spot — estimated $3.50-4.50 per 3-epoch run
 - Minimum: 4× A100 80GB (~$6-10/hr) — matches Cosmos-RL requirements
 - Optimal: 8× H100 80GB (~$24-28/hr) — faster training, matches cookbook config
@@ -232,10 +232,10 @@ NIM officially supports Cosmos-Reason2-8B (>56GB VRAM, BF16). For fine-tuned mod
 curl -fsSL https://raw.githubusercontent.com/brevdev/brev-cli/main/bin/install.sh | sh
 
 # Create GPU instance
-brev create abee-training --gpu h100:4
+brev create clasp-training --gpu h100:4
 
 # Connect
-brev shell abee-training
+brev shell clasp-training
 
 # Inside instance: install Cosmos-RL
 git clone https://github.com/nvidia-cosmos/cosmos-reason2
@@ -266,10 +266,10 @@ uv sync
 ```python
 from google.cloud import aiplatform
 
-aiplatform.init(project="abee-cookoff", location="us-central1")
+aiplatform.init(project="clasp-cookoff", location="us-central1")
 
 job = aiplatform.CustomContainerTrainingJob(
-    display_name="abee-sft-run",
+    display_name="clasp-sft-run",
     container_uri="nvcr.io/nvidia/nemo:24.12",
     model_serving_container_image_uri="nvcr.io/nvidia/tritonserver:24.12",
 )
@@ -279,7 +279,7 @@ model = job.run(
     machine_type="a2-ultragpu-4g",  # 4x A100 80GB
     accelerator_type="NVIDIA_A100_80GB",
     accelerator_count=4,
-    args=["--config", "configs/abee_sft.toml"],
+    args=["--config", "configs/clasp_sft.toml"],
 )
 ```
 
@@ -320,18 +320,18 @@ python train_local.py \
   --gradient_accumulation 16 \
   --lr 1e-5 \
   --epochs 3 \
-  --data data/abee_sft_train.jsonl
+  --data data/clasp_sft_train.jsonl
 ```
 
 ### 2.5 Recommended Hybrid Pipeline
 
 ```
 ┌──────────────────────────────────────────────────┐
-│                 ABEE Training Pipeline            │
+│                 CLASP Training Pipeline            │
 ├──────────────────────────────────────────────────┤
 │                                                   │
 │  LOCAL (RTX 4060 Ti 16GB)                        │
-│  ├─ Data collection (ABEE dry-run + real runs)   │
+│  ├─ Data collection (CLASP dry-run + real runs)   │
 │  ├─ SAM2 + MiDaS physics oracle                 │
 │  ├─ SFT dataset curation                        │
 │  ├─ QLoRA on 2B model (rapid iteration)          │
@@ -351,7 +351,7 @@ python train_local.py \
 │  DEPLOYMENT (Local / NIM)                        │
 │  ├─ Pull fine-tuned model → Ollama               │
 │  ├─ Or NIM endpoint (cloud)                      │
-│  └─ Run ABEE with fine-tuned backbone            │
+│  └─ Run CLASP with fine-tuned backbone            │
 │                                                   │
 └──────────────────────────────────────────────────┘
 ```
@@ -382,7 +382,7 @@ These additions are for AFTER smooth training/testing, to enhance the physical u
 
 **What:** 3D scene reconstruction from images/video using differentiable Gaussian primitives. Creates photorealistic 3D representations in real-time.
 
-**Value for ABEE:**
+**Value for CLASP:**
 
 | Aspect | Current (SAM2+MiDaS) | With 3DGS |
 |--------|----------------------|-----------|
@@ -393,7 +393,7 @@ These additions are for AFTER smooth training/testing, to enhance the physical u
 | Real-time | Yes (~30ms) | Yes (~33ms at 30Hz) |
 
 **Key papers for robotics:**
-- **POGS (ICRA 2025, Berkeley)**: Directly tracks human-robot object handoffs via 3DGS pose tracking. 12 consecutive successful handoffs, recovers from 80% of in-grasp perturbations. Single stereo camera. **Most relevant paper for ABEE.**
+- **POGS (ICRA 2025, Berkeley)**: Directly tracks human-robot object handoffs via 3DGS pose tracking. 12 consecutive successful handoffs, recovers from 80% of in-grasp perturbations. Single stereo camera. **Most relevant paper for CLASP.**
 - **RoboSplat** (RSS 2025): One-shot manipulation via 3DGS demo generation. 87.8% success vs 57.2% with 2D augmentation.
 - **GaussianGrasper**: Language-guided robotic grasping using 3DGS scene representation.
 - **Splat-MOVER**: Multi-stage open-vocabulary manipulation via editable Gaussian Splatting. Real-time 30Hz operation.
@@ -401,7 +401,7 @@ These additions are for AFTER smooth training/testing, to enhance the physical u
 - **GaussianVLM**: Compresses ~40K Gaussians to 132 tokens for VLM input. 5x improvement over prior 3D VLMs.
 - **SplatTalk (ICCV 2025)**: Posed RGB → tokens compatible with standard LLMs. Zero-shot 3D VQA.
 
-**NVIDIA integration:** NVIDIA stated (Aug 2025) that "Cosmos models use Gaussian Splat scenes as the geometric backbone." NuRec library makes 3DGS first-class in Isaac Sim. Warp + gsplat runs physics correction at 33ms — matching ABEE's frame budget.
+**NVIDIA integration:** NVIDIA stated (Aug 2025) that "Cosmos models use Gaussian Splat scenes as the geometric backbone." NuRec library makes 3DGS first-class in Isaac Sim. Warp + gsplat runs physics correction at 33ms — matching CLASP's frame budget.
 
 **Feasibility on RTX 4060 Ti 16GB:**
 - Inference: YES — 3DGS rendering is very GPU-efficient (~10-30ms per frame)
@@ -429,7 +429,7 @@ Camera feed → 3DGS reconstruction (offline/periodic)
 
 **What:** Thermal imaging detects heat signatures from human hands during object handoff — grip contact, thermal transfer, and release dynamics.
 
-**Value for ABEE:**
+**Value for CLASP:**
 
 | Signal | What IR Reveals | Impact on Handoff |
 |--------|----------------|-------------------|
@@ -465,7 +465,7 @@ FLIR Lepton XDS → thermal frame (factory-aligned with RGB)
     → "grip_thermal_confidence" score → Physics Oracle veto signal
 ```
 
-For ABEE's modality_mask system, IR becomes a 4th mask option: `["full", "gripper", "velocity", "thermal"]`
+For CLASP's modality_mask system, IR becomes a 4th mask option: `["full", "gripper", "velocity", "thermal"]`
 
 ThermEval benchmark (arXiv Feb 2026) confirms VLMs can reason about thermal images with appropriate prompting.
 
@@ -480,7 +480,7 @@ ThermEval benchmark (arXiv Feb 2026) confirms VLMs can reason about thermal imag
 
 **What:** WiFi signals penetrate objects and reflect off surfaces. By analyzing Channel State Information (CSI), you can create 3D spatial representations — essentially WiFi-based radar.
 
-**Value for ABEE:**
+**Value for CLASP:**
 
 | Capability | Current State (2025-2026) | Relevance |
 |-----------|---------------------------|-----------|
@@ -519,7 +519,7 @@ ThermEval benchmark (arXiv Feb 2026) confirms VLMs can reason about thermal imag
 
 **What:** Laser-based depth sensing with millimeter accuracy. Unlike monocular depth (MiDaS), LiDAR provides ground-truth 3D point clouds.
 
-**Value for ABEE:**
+**Value for CLASP:**
 
 | Aspect | MiDaS Depth | LiDAR |
 |--------|-------------|-------|
@@ -601,14 +601,14 @@ Should the robot release now? Think step by step.
 ## 4. Implementation Roadmap
 
 ### Phase 1: Cookoff Submission (TODAY — March 5, 2026)
-- [x] ABEE system running with dry-run
+- [x] CLASP system running with dry-run
 - [x] Life-Points, GRPO, dynamic consensus implemented
 - [ ] Record demo video
 - [ ] Finalize README
 - [ ] Submit to nvidia-cosmos/discussions/4
 
 ### Phase 2: Real Inference + Data Collection (Week 1-2 post-submission)
-- [ ] Run ABEE with real Cosmos-Reason2-8B inference (local 4-bit)
+- [ ] Run CLASP with real Cosmos-Reason2-8B inference (local 4-bit)
 - [ ] Collect 500+ trajectory SFT records
 - [ ] Validate ArchiveKV population with real embeddings
 - [ ] Run cloud distillation via Vertex AI (Claude 3.5 Sonnet)
@@ -621,7 +621,7 @@ Should the robot release now? Think step by step.
 - [ ] Iterate on dataset filtering and prompt engineering
 
 ### Phase 4: GRPO Reinforcement Learning (Week 3-4)
-- [ ] Define reward function (maps to ABEE's Life-Points scoring)
+- [ ] Define reward function (maps to CLASP's Life-Points scoring)
 - [ ] Run GRPO on SFT checkpoint (8× H100 via Brev/Nebius)
 - [ ] Evaluate improvement over SFT baseline
 - [ ] Final model selection

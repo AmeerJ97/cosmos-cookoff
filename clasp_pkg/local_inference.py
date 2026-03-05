@@ -1,5 +1,5 @@
 """
-ABEE Local Inference — 3x cosmos-reason2-8B loaded into CPU RAM (96GB DDR5).
+CLASP Local Inference — 3x cosmos-reason2-8B loaded into CPU RAM (96GB DDR5).
 Each agent gets its own dedicated model instance → true parallel inference.
 GPU handles compute, RAM holds all three model weight sets simultaneously.
 
@@ -24,7 +24,7 @@ from transformers import (
 
 from .models import AgentState, AgentResponse, EpistemicDecision, FrameData, ArchiveMemory
 
-log = logging.getLogger("abee.local")
+log = logging.getLogger("clasp.local")
 
 MODEL_PATH = Path("/mnt/dc5/cosmos-cookoff/models/cosmos-reason2-8b")
 MODEL_PATH_2B = Path("/mnt/dc5/cosmos-cookoff/models/cosmos-reason2-2b")

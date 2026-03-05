@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-ABEE — Adversarial Blind Epistemic Ensemble
+CLASP — Cosmos Learning Agent Safety Protocol
 Main entry point for the NVIDIA Cosmos Cookoff evaluation run.
 
 Usage:
-  python run_abee.py                          # synthetic data, no dashboard
-  python run_abee.py --trajectories 50        # 50 synthetic trajectories
-  python run_abee.py --manifest data/manifest.json  # real DROID data
-  python run_abee.py --dashboard              # launch Dash in background
-  python run_abee.py --dry-run                # skip NIM API, synthetic decisions
+  python run_clasp.py                          # synthetic data, no dashboard
+  python run_clasp.py --trajectories 50        # 50 synthetic trajectories
+  python run_clasp.py --manifest data/manifest.json  # real DROID data
+  python run_clasp.py --dashboard              # launch Dash in background
+  python run_clasp.py --dry-run                # skip NIM API, synthetic decisions
 """
 import argparse
 import asyncio
@@ -23,11 +23,11 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 import aiohttp
 
-from abee_pkg.orchestrator import Orchestrator
-from abee_pkg.sft import SFTSerializer
-from abee_pkg.data_loader import auto_load, load_from_manifest, generate_synthetic_micro_set
-from abee_pkg.scorer import evaluate_frame, FrameVerdict, TrajectoryResult
-from abee_pkg.models import ArchiveMemory
+from clasp_pkg.orchestrator import Orchestrator
+from clasp_pkg.sft import SFTSerializer
+from clasp_pkg.data_loader import auto_load, load_from_manifest, generate_synthetic_micro_set
+from clasp_pkg.scorer import evaluate_frame, FrameVerdict, TrajectoryResult
+from clasp_pkg.models import ArchiveMemory
 from dashboard.app import push_telemetry_event, app as dash_app
 from configs.settings import (
     NGC_API_KEY, NIM_BASE_URL, NIM_MODEL,
@@ -39,7 +39,7 @@ logging.basicConfig(
     format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
     datefmt="%H:%M:%S",
 )
-log = logging.getLogger("abee.main")
+log = logging.getLogger("clasp.main")
 
 
 def make_telemetry_cb(push_fn):
@@ -80,7 +80,7 @@ async def run(args):
         log.error("No NGC API key found. Set NGC_API_KEY env var or configure ~/.ngc/config")
         sys.exit(1)
 
-    log.info("ABEE starting — model=%s endpoint=%s", NIM_MODEL, NIM_BASE_URL)
+    log.info("CLASP starting — model=%s endpoint=%s", NIM_MODEL, NIM_BASE_URL)
     if NGC_API_KEY:
         log.info("API key: %s...%s", NGC_API_KEY[:8], NGC_API_KEY[-4:])
 
@@ -105,7 +105,7 @@ async def run(args):
     # ── Dry-run mode: synthetic decisions with full survival game ─────────
     if args.dry_run:
         log.info("DRY RUN mode — synthetic decisions, full Life-Points + Hyper-GRPO active")
-        from abee_pkg.models import AgentResponse, EpistemicDecision
+        from clasp_pkg.models import AgentResponse, EpistemicDecision
         import random
 
         for trajectory, frames in data:
@@ -227,7 +227,7 @@ async def run(args):
                                 # Write SFT record
                                 if sft:
                                     agent = orch.agents[resp.agent_idx]
-                                    from abee_pkg.models import SFTRecord
+                                    from clasp_pkg.models import SFTRecord
                                     rec = SFTRecord(
                                         trajectory_id=trajectory.trajectory_id,
                                         frame_idx=frame.frame_idx,
@@ -300,7 +300,7 @@ async def run(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="ABEE — Adversarial Blind Epistemic Ensemble")
+    parser = argparse.ArgumentParser(description="CLASP — Cosmos Learning Agent Safety Protocol")
     parser.add_argument("--trajectories", type=int, default=10,
                         help="Number of synthetic trajectories (default: 10)")
     parser.add_argument("--manifest", type=str, default=None,

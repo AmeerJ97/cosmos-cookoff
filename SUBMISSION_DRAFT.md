@@ -10,7 +10,7 @@
 - Age 18+: Yes
 
 ## Team
-- Team Name: ABEE
+- Team Name: CLASP
 - Team Members: (your name & email)
 
 ## Project
@@ -28,7 +28,7 @@ No, I used my own GPUs and compute.
 
 ## Project Description (< 200 words)
 
-ABEE (Adversarial Blind Epistemic Ensemble) solves the stopping-time problem in
+CLASP (Cosmos Learning Agent Safety Protocol) solves the stopping-time problem in
 human-robot object handoffs using NVIDIA Cosmos Reason 2.
 
 Three blind agents independently process every video frame, each seeing a

@@ -1,5 +1,5 @@
 # NVIDIA Cloud Training Platforms for VLM Fine-Tuning
-## Research Document for ABEE / Cosmos Cookoff
+## Research Document for CLASP / Cosmos Cookoff
 
 **Research Date:** March 5, 2026
 **Scope:** NVIDIA Brev, DGX Cloud, NeMo Framework, NIM deployment, GPU cloud comparison, Cosmos Cookoff specifics
@@ -17,7 +17,7 @@
 7. [Alternative GPU Cloud Providers](#6-alternative-gpu-cloud-providers)
 8. [GPU Pricing Comparison Table](#7-gpu-pricing-comparison-table)
 9. [Cosmos Cookoff Infrastructure](#8-cosmos-cookoff-infrastructure)
-10. [Recommendations for ABEE](#9-recommendations-for-abee)
+10. [Recommendations for CLASP](#9-recommendations-for-clasp)
 11. [Sources and References](#10-sources-and-references)
 12. [Methodology](#11-methodology)
 
@@ -25,7 +25,7 @@
 
 ## Executive Summary
 
-NVIDIA has built a vertically integrated ecosystem spanning cloud GPU access (Brev, DGX Cloud Lepton), training frameworks (NeMo AutoModel, Cosmos-RL, TAO Toolkit), and production deployment (NIM microservices). For the ABEE project targeting Cosmos-Reason2-8B SFT fine-tuning:
+NVIDIA has built a vertically integrated ecosystem spanning cloud GPU access (Brev, DGX Cloud Lepton), training frameworks (NeMo AutoModel, Cosmos-RL, TAO Toolkit), and production deployment (NIM microservices). For the CLASP project targeting Cosmos-Reason2-8B SFT fine-tuning:
 
 - **Brev** has been acquired by NVIDIA (mid-2024) and is now the primary self-serve GPU access portal, aggregating multiple cloud providers. Third-place Cosmos Cookoff prize is $500 in Brev credits.
 - **DGX Cloud Lepton** is NVIDIA's new unified multi-cloud orchestration platform (announced 2025), replacing the CSP-direct DGX Cloud approach for developers.
@@ -33,7 +33,7 @@ NVIDIA has built a vertically integrated ecosystem spanning cloud GPU access (Br
 - **Cosmos-RL** (in the cosmos-reason2 repo) is the native fine-tuning framework for Cosmos-Reason2, requiring minimum 4x 80GB GPUs for the 8B model.
 - **NIM for VLMs** officially supports Cosmos-Reason2 (both 2B and 8B) for production deployment post fine-tuning.
 - **Nebius AI Cloud** is the Cosmos Cookoff's compute sponsor with the most competitive pricing for H100s at $2.95/hr (HGX) and L40S from $1.55/hr.
-- For the ABEE project's local RTX 4060 Ti 16GB, full 8B SFT is not feasible locally; cloud inference/training is required for any SFT runs.
+- For the CLASP project's local RTX 4060 Ti 16GB, full 8B SFT is not feasible locally; cloud inference/training is required for any SFT runs.
 
 ---
 
@@ -288,7 +288,7 @@ Cosmos-Reason2-8B is based on **Qwen3-VL-8B-Instruct** architecture (released De
 - Supervised Fine-Tuning (SFT) on physical common sense and embodied reasoning data
 - Reinforcement Learning for further alignment
 
-Key capabilities relevant to ABEE:
+Key capabilities relevant to CLASP:
 - Spatio-temporal reasoning (space, time, physics understanding)
 - Object detection with 2D/3D point localization and bounding-box coordinates
 - Long-context processing: up to 256K input tokens
@@ -384,20 +384,20 @@ Answer: Response referencing regions in same format
 - SFT + RL: additional ~5% gain
 - Combined: 65.7 average score on robotics/AV benchmarks
 
-### 4.4 ABEE-Specific Considerations
+### 4.4 CLASP-Specific Considerations
 
-For fine-tuning on ABEE's SFT dataset (curated human-robot handoff prediction data):
+For fine-tuning on CLASP's SFT dataset (curated human-robot handoff prediction data):
 
 1. **Local RTX 4060 Ti 16GB is insufficient** for 8B SFT. Options:
    - QLoRA on 4x A10G-equivalent or better in cloud
    - Use 2B model locally for experimentation
    - Run SFT in cloud, inference locally (model fits quantized)
 
-2. **Data format:** Convert ABEE's POMDP decision logs to LLaVA conversation format, with video frames as images and THINK/ACT decisions as assistant responses
+2. **Data format:** Convert CLASP's POMDP decision logs to LLaVA conversation format, with video frames as images and THINK/ACT decisions as assistant responses
 
 3. **SFT target:** Train on correct-ACT examples from high-performing agent episodes (high Life-Points, correct consensus with oracle)
 
-4. **Evaluation:** Use ABEE's own safe-handoff prediction task, not generic benchmarks
+4. **Evaluation:** Use CLASP's own safe-handoff prediction task, not generic benchmarks
 
 ---
 
@@ -420,7 +420,7 @@ NVIDIA NIM for Vision Language Models is a separate product from NIM for LLMs, w
 ### 5.2 Complete Train-to-Deploy Pipeline
 
 ```
-[ABEE SFT Data Collection]
+[CLASP SFT Data Collection]
         |
         v
 [Cosmos-RL / NeMo AutoModel SFT]
@@ -441,7 +441,7 @@ NVIDIA NIM for Vision Language Models is a separate product from NIM for LLMs, w
   - Serves OpenAI-compatible API
         |
         v
-[Local ABEE Inference]
+[Local CLASP Inference]
   - Query NIM endpoint from orchestrator
   - 2.6x throughput vs off-the-shelf H100
 ```
@@ -452,9 +452,9 @@ For fine-tuned models deployed via NIM for LLMs (the documented path; VLM path s
 - **Minimum VRAM:** 80GB GPU
 - **Environment variables:**
   - `NIM_FT_MODEL=/path/to/fine-tuned-weights`
-  - `NIM_SERVED_MODEL_NAME=abee-cosmos-reason2-sft`
+  - `NIM_SERVED_MODEL_NAME=clasp-cosmos-reason2-sft`
   - `NIM_USE_TRTLLM_LEGACY_BACKEND=1` (required for fine-tuned models — default backend does not support them)
-  - `NIM_CUSTOM_MODEL_NAME=abee-sft-v1` (for caching built engines)
+  - `NIM_CUSTOM_MODEL_NAME=clasp-sft-v1` (for caching built engines)
 
 **Critical note:** The **default PyTorch TRT-LLM backend does not support fine-tuned models.** The legacy backend must be explicitly enabled.
 
@@ -479,7 +479,7 @@ Brev provides one-click serverless NIM deployment. For production use:
 
 ### 6.1 Nebius AI Cloud
 
-**Why it matters for ABEE:** Nebius is a **Cosmos Cookoff competition sponsor** and judge. Deployment guides for Nebius AI Cloud are included in the Cosmos Cookbook. The Cookoff rules note "Nebius credits are exhausted" (for the competition), implying credits were distributed but may have run out.
+**Why it matters for CLASP:** Nebius is a **Cosmos Cookoff competition sponsor** and judge. Deployment guides for Nebius AI Cloud are included in the Cosmos Cookbook. The Cookoff rules note "Nebius credits are exhausted" (for the competition), implying credits were distributed but may have run out.
 
 **GPU Pricing (standard on-demand):**
 
@@ -636,7 +636,7 @@ Based on Datature tutorial (100 scenes, 100 epochs, 4x A10G/L40S-class GPUs):
 - **Lambda 4x A100:** 4 x $1.48/hr x ~8 hrs = **~$47**
 - **Nebius H100 NVLink (faster):** $2.95/hr x ~3 hrs = **~$9** (single H100, LoRA)
 
-For the full ABEE SFT dataset (potentially hundreds to thousands of episodes), budget $50-500 depending on dataset size and number of training runs.
+For the full CLASP SFT dataset (potentially hundreds to thousands of episodes), budget $50-500 depending on dataset size and number of training runs.
 
 ---
 
@@ -682,7 +682,7 @@ For the full ABEE SFT dataset (potentially hundreds to thousands of episodes), b
 
 ### 8.6 Scope Restriction
 
-The competition **explicitly excludes** generative media, art, gaming, and content creation. Projects must address physical AI reasoning: robotics, autonomous systems, video analytics. ABEE (safe human-robot handoff prediction) fits squarely within scope.
+The competition **explicitly excludes** generative media, art, gaming, and content creation. Projects must address physical AI reasoning: robotics, autonomous systems, video analytics. CLASP (safe human-robot handoff prediction) fits squarely within scope.
 
 ### 8.7 Available Resources
 
@@ -693,7 +693,7 @@ The competition **explicitly excludes** generative media, art, gaming, and conte
 
 ---
 
-## 9. Recommendations for ABEE
+## 9. Recommendations for CLASP
 
 ### 9.1 For SFT Fine-Tuning Runs
 
@@ -709,9 +709,9 @@ The competition **explicitly excludes** generative media, art, gaming, and conte
 
 - **Avoid CoreWeave** for small SFT runs: overkill pricing, complex setup
 
-### 9.2 For the ABEE SFT Dataset Format
+### 9.2 For the CLASP SFT Dataset Format
 
-Convert ABEE episode logs to LLaVA JSON format:
+Convert CLASP episode logs to LLaVA JSON format:
 ```json
 {
   "id": "episode_001_frame_008",

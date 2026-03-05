@@ -1,5 +1,5 @@
 """
-ABEE Real-Time Telemetry Dashboard
+CLASP Real-Time Telemetry Dashboard
 3D UMAP projection of agent embeddings + trajectory progress + live stats.
 """
 from __future__ import annotations
@@ -17,7 +17,7 @@ from dash.dependencies import Input, Output
 from configs.settings import REDIS_HOST, REDIS_PORT, DASH_HOST, DASH_PORT, DEFAULT_AGENTS
 
 # ── Telemetry state (written by orchestrator, read by Dash) ─────────────────
-# Stored in Redis key "abee:telemetry" as a JSON list of event dicts
+# Stored in Redis key "clasp:telemetry" as a JSON list of event dicts
 
 app = Dash(__name__)
 
@@ -25,7 +25,7 @@ app.layout = html.Div(
     style={"backgroundColor": "#0d1117", "minHeight": "100vh", "fontFamily": "monospace"},
     children=[
         html.H1(
-            "ABEE — Adversarial Blind Epistemic Ensemble",
+            "CLASP — Cosmos Learning Agent Safety Protocol",
             style={"color": "#58a6ff", "padding": "20px", "margin": 0},
         ),
         html.Div(
@@ -68,7 +68,7 @@ app.layout = html.Div(
 def _get_events() -> list[dict]:
     try:
         r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
-        raw = r.get("abee:telemetry")
+        raw = r.get("clasp:telemetry")
         if raw:
             return json.loads(raw)
     except Exception:
@@ -173,13 +173,13 @@ def push_telemetry_event(event: dict):
     """Push a telemetry event to Redis for the dashboard to pick up."""
     try:
         r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
-        raw = r.get("abee:telemetry")
+        raw = r.get("clasp:telemetry")
         events = json.loads(raw) if raw else []
         events.append(event)
         # Keep last 500 events
         if len(events) > 500:
             events = events[-500:]
-        r.set("abee:telemetry", json.dumps(events))
+        r.set("clasp:telemetry", json.dumps(events))
     except Exception:
         pass
 

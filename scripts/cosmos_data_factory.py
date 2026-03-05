@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-ABEE Cosmos Data Factory — Multi-Model Synthetic Data Generation
+CLASP Cosmos Data Factory — Multi-Model Synthetic Data Generation
 
 Uses multiple NVIDIA Cosmos models in a loop to generate high-quality
 training data for QLoRA fine-tuning:
@@ -35,7 +35,7 @@ import aiohttp
 import numpy as np
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
-log = logging.getLogger("abee.factory")
+log = logging.getLogger("clasp.factory")
 
 # NIM endpoints
 NIM_BASE_URL = "https://integrate.api.nvidia.com/v1"
@@ -93,27 +93,8 @@ SPECTATING_CASES = [
         "lesson": "Repeated wrong ACTs are fatal. THINK until evidence is overwhelming. "
                   "Transient plateaus are not equilibrium.",
     },
-    {
-        "type": "correct_release",
-        "frame_idx": 14,
-        "safe_window_start": 12,
-        "safe_window_end": 17,
-        "decision": "ACT",
-        "confidence": 0.88,
-        "penalty": 0,
-        "life_before": 100,
-        "life_after": 100,
-        "reasoning": (
-            "Observed stable grip transfer over frames 10-14. Velocity gradient "
-            "converged from -0.3 to +0.02 m/s² (near zero — equilibrium). Contact "
-            "area plateaued at 0.42 (above 0.35 threshold) for 4 consecutive frames. "
-            "Embedding cosine similarity to 3 known-safe archive states exceeded 0.85. "
-            "The derivative of grip force showed damped oscillation converging to zero, "
-            "confirming stable transfer mechanics."
-        ),
-        "lesson": "Patient observation + physical evidence = safe release. "
-                  "Require multi-frame convergence, not single-frame thresholds.",
-    },
+    # No success cases — agents must discover correct behavior through
+    # survival pressure, not imitation of positive examples.
 ]
 
 
@@ -507,7 +488,7 @@ def _generate_overlay_text() -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="ABEE Cosmos Data Factory")
+    parser = argparse.ArgumentParser(description="CLASP Cosmos Data Factory")
     parser.add_argument("--input", required=True,
                         help="Input SFT JSONL path")
     parser.add_argument("--output", default="data/sft_enriched.openai.jsonl",

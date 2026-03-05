@@ -1,11 +1,11 @@
 #!/bin/bash
-# ABEE GPU Training Setup Script
+# CLASP GPU Training Setup Script
 # Target: A100 80GB VM node
 # Run this once after VM provisioning
 
 set -euo pipefail
 
-echo "=== ABEE Training Environment Setup ==="
+echo "=== CLASP Training Environment Setup ==="
 
 # System packages
 apt-get update && apt-get install -y git wget curl htop nvtop 2>/dev/null || true

@@ -1,11 +1,11 @@
-# ABEE — Adversarial Blind Epistemic Ensemble
+# CLASP — Cosmos Learning Agent Safety Protocol
 **NVIDIA Cosmos Cookoff** · Robotic handoff safety via multi-agent epistemic reasoning on `nvidia/cosmos-reason2-8b`
 
 ---
 
 ## What it does
 
-ABEE determines the **safe release window** during a human-robot object handoff. Three blind, information-asymmetric agents each independently query Cosmos Reason 2, producing an ACT (release now) or THINK (wait) decision with zero awareness of each other. The orchestrator resolves their independent decisions under a real-time survival game. Wrong decisions drain life points; dead agents are replaced by Hyper-GRPO sampling a new identity from 36 possible configurations.
+CLASP determines the **safe release window** during a human-robot object handoff. Three blind, information-asymmetric agents each independently query Cosmos Reason 2, producing an ACT (release now) or THINK (wait) decision with zero awareness of each other. The orchestrator resolves their independent decisions under a real-time survival game. Wrong decisions drain life points; dead agents are replaced by Hyper-GRPO sampling a new identity from 36 possible configurations.
 
 ---
 
@@ -123,34 +123,34 @@ export NGC_API_KEY=nvapi-YOUR-KEY
 python scripts/test_api.py
 
 # Run on synthetic trajectories (no dataset download needed)
-python run_abee.py --trajectories 20
+python run_clasp.py --trajectories 20
 
 # Run on real MIMIC data (requires dataset — see Dataset section)
-python run_abee.py --manifest data/manifest.json
+python run_clasp.py --manifest data/manifest.json
 ```
 
 ### Run with local models
 
 ```bash
 # Set local model path (requires downloading cosmos-reason2 weights from HuggingFace)
-export ABEE_LOCAL_MODEL_PATH=/path/to/cosmos-reason2-8b
+export CLASP_LOCAL_MODEL_PATH=/path/to/cosmos-reason2-8b
 
 # Edit configs/settings.py: set USE_LOCAL_MODEL = True
-python run_abee.py --trajectories 20
+python run_clasp.py --trajectories 20
 ```
 
 ### Dry-run mode (no GPU or API needed)
 
 ```bash
 # Full survival game with synthetic agent decisions
-python run_abee.py --dry-run --trajectories 50
+python run_clasp.py --dry-run --trajectories 50
 ```
 
 ### Live telemetry dashboard
 
 ```bash
 # Add --dashboard to any run command to launch the Plotly dashboard at http://localhost:8050
-python run_abee.py --trajectories 20 --dashboard
+python run_clasp.py --trajectories 20 --dashboard
 ```
 
 ---
@@ -163,7 +163,7 @@ python run_abee.py --trajectories 20 --dashboard
 | Trajectories | 1,137 |
 | Frames | 30,666 |
 | Task | `mimic_displacement_to_handover_blue_block` (v2, v6, v7, v8) |
-| Conversion | `scripts/convert_mimic_to_abee.py` -> `data/manifest.json` |
+| Conversion | `scripts/convert_mimic_to_clasp.py` -> `data/manifest.json` |
 
 ---
 
@@ -191,7 +191,7 @@ python run_abee.py --trajectories 20 --dashboard
 ## Repository structure
 
 ```
-abee_pkg/
+clasp_pkg/
   orchestrator.py    asyncio game loop — frame processing, consensus, lifecycle
   agents.py          NIM API dispatcher — payload construction, response parsing
   local_inference.py local 4-bit inference via transformers + bitsandbytes
@@ -208,7 +208,7 @@ dashboard/
   app.py             Plotly Dash real-time telemetry (3D UMAP, life-points, decisions)
 data/                manifest, frames, results, FAISS index (gitignored)
 scripts/
-  convert_mimic_to_abee.py   MIMIC dataset -> ABEE manifest converter
+  convert_mimic_to_clasp.py   MIMIC dataset -> CLASP manifest converter
   cosmos_data_factory.py     multi-model data generation pipeline
   train_qlora.py             QLoRA fine-tuning (A100 or Vertex AI)
   vertex_train.py            Vertex AI serverless job submission
@@ -220,10 +220,10 @@ docs/
   Architecture docs/         system design, training pipeline, sensor proposals
   research/                  VLM training, Gaussian splatting, sensor research
   tracker/                   training log, pricing, research index
-run_abee.py          CLI entry point
+run_clasp.py          CLI entry point
 docker-compose.yml   Redis container
 requirements.txt     Python dependencies
 ```
 
 Full system diagrams (8 Mermaid diagrams — sequence, state machine, bandit loop, SFT pipeline):
-[docs/Architecture docs/ABEE System Documentation.md](docs/Architecture%20docs/ABEE%20System%20Documentation.md)
+[docs/Architecture docs/CLASP System Documentation.md](docs/Architecture%20docs/CLASP%20System%20Documentation.md)

@@ -1,5 +1,5 @@
 """
-ABEE Data Loader — loads DROID/YCB-Handovers trajectories.
+CLASP Data Loader — loads DROID/YCB-Handovers trajectories.
 Generates synthetic micro-evaluation set if real data unavailable.
 """
 from __future__ import annotations
@@ -12,7 +12,7 @@ from pathlib import Path
 from .models import TrajectoryMeta, FrameData
 from configs.settings import DATA_DIR, TAU_EARLY, TAU_LATE
 
-log = logging.getLogger("abee.data")
+log = logging.getLogger("clasp.data")
 
 
 def _encode_image(path: Path) -> str:

@@ -1,4 +1,4 @@
-# ADVERSARIAL BLIND EPISTEMIC ENSEMBLE (ABEE)
+# ADVERSARIAL BLIND EPISTEMIC ENSEMBLE (CLASP)
 ## Deep-Dive Literature Dossier: State-of-the-Art Integration for Robotic Failure Prediction
 ### NVIDIA Cosmos Cookoff — 4-Agent Distributed VLA System
 
@@ -355,13 +355,13 @@ This **asymmetric veto with justification** mechanism prevents herding while all
 
 ---
 
-## SYNTHESIS: FULL ABEE ARCHITECTURE INTEGRATION
+## SYNTHESIS: FULL CLASP ARCHITECTURE INTEGRATION
 
 ### The POMDP Loop — Augmented
 
 ```
 ╔══════════════════════════════════════════════════════════════════╗
-║                    ABEE FRAME-PROCESSING PIPELINE                ║
+║                    CLASP FRAME-PROCESSING PIPELINE                ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║                                                                  ║
 ║  FRAME_t ──────────────────────────────────────────────────────  ║
@@ -437,7 +437,7 @@ The budget constraint imposes a deadline: if $t = T_{\text{budget\_exhausted}}$,
 
 ## KEY CITATIONS SUMMARY
 
-| Vector | Paper | Year | Key Contribution to ABEE |
+| Vector | Paper | Year | Key Contribution to CLASP |
 |---|---|---|---|
 | V1 | V-JEPA 2 (Assran et al.) | Jun 2025 | Latent prediction residual as physics anomaly score |
 | V1 | VL-JEPA (Chen et al.) | Dec 2025 | Cross-modal prediction gap as early physics warning |
@@ -453,5 +453,5 @@ The budget constraint imposes a deadline: if $t = T_{\text{budget\_exhausted}}$,
 
 ---
 
-*End of Dossier — ABEE Research Intelligence Report v1.0*  
+*End of Dossier — CLASP Research Intelligence Report v1.0*  
 *Compiled for NVIDIA Cosmos Cookoff — Physical AI Track*

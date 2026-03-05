@@ -1,4 +1,4 @@
-# ABEE Training Log
+# CLASP Training Log
 
 Tracks all training runs — formal (cloud SFT/GRPO) and informal (local dry-runs, experiments).
 

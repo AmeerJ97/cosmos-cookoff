@@ -1,5 +1,5 @@
 """
-ABEE Hyper-GRPO — Discrete policy optimization over the Asymmetry Matrix.
+CLASP Hyper-GRPO — Discrete policy optimization over the Asymmetry Matrix.
 
 When agents die (L_i <= 0), their identity's logit is updated based on
 accumulated reward. New agents are spawned by sampling from the updated
@@ -17,7 +17,7 @@ from configs.settings import (
     GRPO_ENTROPY_SIGMA, L_MAX, WINDOW_MIN,
 )
 
-log = logging.getLogger("abee.grpo")
+log = logging.getLogger("clasp.grpo")
 
 # Agent name pool for respawned agents
 _NAME_POOL = [

@@ -1,5 +1,5 @@
 """
-ABEE Physics Oracle Layer
+CLASP Physics Oracle Layer
 - SAM2 mask geometry → ConstraintReport (contact area, velocity, occlusion)
 - Depth-based geometric oracle (MiDaS → point cloud stats)
 - Hard veto logic (pre-empts VLM entirely)
@@ -12,7 +12,7 @@ import numpy as np
 from dataclasses import dataclass, field
 from pathlib import Path
 
-log = logging.getLogger("abee.oracle")
+log = logging.getLogger("clasp.oracle")
 
 SAM2_CHECKPOINT = Path("/mnt/dc5/cosmos-cookoff/models/sam2/sam2.1_hiera_small.pt")
 SAM2_CONFIG = "configs/sam2.1/sam2.1_hiera_s.yaml"

@@ -1,8 +1,8 @@
-# Isaac Sim Assessment for ABEE
+# Isaac Sim Assessment for CLASP
 
 ## What Isaac Sim Offers
 
-Isaac Sim is NVIDIA's robotics simulation platform built on Omniverse. For ABEE, the relevant capabilities are:
+Isaac Sim is NVIDIA's robotics simulation platform built on Omniverse. For CLASP, the relevant capabilities are:
 
 ### 1. Synthetic Data Generation (CosmosWriter)
 - Generates synchronized RGB + Depth + Segmentation + Edges from simulated scenes
@@ -33,9 +33,9 @@ Isaac Sim is NVIDIA's robotics simulation platform built on Omniverse. For ABEE,
 **Our hardware:** RTX 4060 Ti 16GB
 - MEETS recommended spec for basic scenes
 - CANNOT run Isaac Sim + Cosmos-Reason2 inference simultaneously (both need VRAM)
-- Would need to use Isaac Sim for data generation ONLY (offline), then switch to ABEE for inference
+- Would need to use Isaac Sim for data generation ONLY (offline), then switch to CLASP for inference
 
-## Value Proposition for ABEE
+## Value Proposition for CLASP
 
 ### HIGH VALUE: Synthetic Training Data
 - **Problem**: We need 500-1000+ handoff trajectories with ground-truth labels for SFT
@@ -53,7 +53,7 @@ Isaac Sim is NVIDIA's robotics simulation platform built on Omniverse. For ABEE,
 - Prototype new modalities without physical sensors
 
 ### LOW VALUE: Direct Policy Training
-- ABEE doesn't train a policy — it's a VLM-based POMDP evaluator
+- CLASP doesn't train a policy — it's a VLM-based POMDP evaluator
 - Isaac Lab's RL training is for motor control policies, not VLM reasoning
 - However, could generate VLM training data from RL rollouts
 
@@ -70,7 +70,7 @@ Isaac Sim (offline, data generation)
   │     ├── Object velocity → release_safe threshold
   │     └── Hand pose → approach/transfer/release phases
   │
-  └── Export → ABEE SFT Dataset (LLaVA format)
+  └── Export → CLASP SFT Dataset (LLaVA format)
         ├── Video clips (RGB, 4 FPS)
         ├── Ground-truth labels (THINK/ACT per frame)
         └── Think traces (from Claude distillation on synthetic data)
@@ -87,7 +87,7 @@ Isaac Sim (offline, data generation)
 ### Cons
 - **Time investment**: Setting up a handoff scene in Isaac Sim takes days
 - **Sim-to-real gap**: Simulated handoffs may not transfer perfectly to real video
-- **VRAM conflict**: Can't run Isaac Sim and ABEE simultaneously on RTX 4060 Ti
+- **VRAM conflict**: Can't run Isaac Sim and CLASP simultaneously on RTX 4060 Ti
 - **Scope creep risk**: Could consume all remaining time if not scoped tightly
 - **Not required for Cookoff**: Submission is already strong without it
 
@@ -95,7 +95,7 @@ Isaac Sim (offline, data generation)
 
 **FOR COOKOFF SUBMISSION (TODAY): NO**
 - No time to set up Isaac Sim properly
-- Current ABEE system is submission-ready without it
+- Current CLASP system is submission-ready without it
 
 **FOR POST-COOKOFF TRAINING PHASE: YES, HIGH PRIORITY**
 - Isaac Sim is the best path to generating the 500+ labeled trajectories needed for SFT

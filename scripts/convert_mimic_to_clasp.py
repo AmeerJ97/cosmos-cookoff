@@ -1,8 +1,8 @@
 """
-Convert Mimic-Robotics bimanual handover datasets (LeRobot format) to ABEE manifest.
+Convert Mimic-Robotics bimanual handover datasets (LeRobot format) to CLASP manifest.
 
 Detects the handover frame from gripper state transitions (one opens, other closes)
-and generates the manifest.json + extracted frame images for ABEE consumption.
+and generates the manifest.json + extracted frame images for CLASP consumption.
 """
 from __future__ import annotations
 import argparse
@@ -143,7 +143,7 @@ def build_frame_summary(states: np.ndarray, frame_idx: int, handover_frame: int,
 
 
 def process_dataset(dataset_dir: Path, output_dir: Path, dataset_id: str, extract_video: bool = True) -> list[dict]:
-    """Process a single Mimic-Robotics dataset directory into ABEE trajectories."""
+    """Process a single Mimic-Robotics dataset directory into CLASP trajectories."""
     meta_path = dataset_dir / "meta" / "info.json"
     if not meta_path.exists():
         log.error("No info.json found in %s", dataset_dir)
@@ -214,8 +214,8 @@ def process_dataset(dataset_dir: Path, output_dir: Path, dataset_id: str, extrac
         # Detect handover frame
         handover_frame, direction = detect_handover_frame(states)
 
-        # Subsample frames for ABEE (30fps is too dense, take every Nth frame)
-        # Target ~25-30 frames per trajectory for ABEE's stopping-time game
+        # Subsample frames for CLASP (30fps is too dense, take every Nth frame)
+        # Target ~25-30 frames per trajectory for CLASP's stopping-time game
         stride = max(1, ep_len // 25)
         frame_indices = list(range(0, ep_len, stride))
         if handover_frame not in frame_indices:
@@ -250,15 +250,15 @@ def process_dataset(dataset_dir: Path, output_dir: Path, dataset_id: str, extrac
                 frame_output_dir = output_dir / "frames" / traj_id
                 frame_images = extract_frames_from_video(video_path, frame_indices, frame_output_dir)
 
-        # Map subsampled indices to ABEE frame indices (0-based sequential)
-        # t_release maps to the ABEE frame index corresponding to handover_frame
-        abee_handover_idx = frame_indices.index(handover_frame)
+        # Map subsampled indices to CLASP frame indices (0-based sequential)
+        # t_release maps to the CLASP frame index corresponding to handover_frame
+        clasp_handover_idx = frame_indices.index(handover_frame)
 
         frames = []
-        for abee_idx, real_idx in enumerate(frame_indices):
+        for clasp_idx, real_idx in enumerate(frame_indices):
             summary = build_frame_summary(states, real_idx, handover_frame, direction)
             frame_entry = {
-                "frame_idx": abee_idx,
+                "frame_idx": clasp_idx,
                 "real_frame_idx": int(real_idx),
                 "summary": summary,
             }
@@ -271,9 +271,9 @@ def process_dataset(dataset_dir: Path, output_dir: Path, dataset_id: str, extrac
         traj_entry = {
             "trajectory_id": traj_id,
             "total_frames": len(frame_indices),
-            "t_release": abee_handover_idx,
-            "t_safe_start": max(0, abee_handover_idx - tau_early),
-            "t_safe_end": min(len(frame_indices) - 1, abee_handover_idx + tau_late),
+            "t_release": clasp_handover_idx,
+            "t_safe_start": max(0, clasp_handover_idx - tau_early),
+            "t_safe_end": min(len(frame_indices) - 1, clasp_handover_idx + tau_late),
             "source": "mimic_handover",
             "video_path": str(dataset_dir / f"videos/chunk-000/observation.images.realsense_top/episode_{ep_idx:06d}.mp4"),
             "fps": fps,
@@ -284,14 +284,14 @@ def process_dataset(dataset_dir: Path, output_dir: Path, dataset_id: str, extrac
         trajectories.append(traj_entry)
         log.info(
             "  %s: %d frames, handover@%d (real=%d), direction=%s",
-            traj_id, len(frame_indices), abee_handover_idx, handover_frame, direction,
+            traj_id, len(frame_indices), clasp_handover_idx, handover_frame, direction,
         )
 
     return trajectories
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Convert Mimic-Robotics handover data to ABEE manifest")
+    parser = argparse.ArgumentParser(description="Convert Mimic-Robotics handover data to CLASP manifest")
     parser.add_argument(
         "--input-dir",
         type=Path,
@@ -339,7 +339,7 @@ def main():
     total_frames = sum(t["total_frames"] for t in all_trajectories)
     handover_frames = [t["t_release"] for t in all_trajectories]
     print(f"\n{'='*60}")
-    print(f"ABEE Manifest Summary")
+    print(f"CLASP Manifest Summary")
     print(f"{'='*60}")
     print(f"Trajectories:     {len(all_trajectories)}")
     print(f"Total frames:     {total_frames}")

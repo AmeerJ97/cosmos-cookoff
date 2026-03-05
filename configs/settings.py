@@ -1,5 +1,5 @@
 """
-ABEE Configuration — Adversarial Blind Epistemic Ensemble
+CLASP Configuration — Cosmos Learning Agent Safety Protocol
 All tunable parameters in one place.
 """
 from pathlib import Path
@@ -136,7 +136,7 @@ N_IDENTITIES = N_PROMPT_BIASES * N_TEMPORAL_MASKS * N_MODALITY_MASKS  # 36
 REDIS_HOST = "localhost"
 REDIS_PORT = 6379
 REDIS_DB = 0
-LIVEKV_PREFIX = "abee:live:"
+LIVEKV_PREFIX = "clasp:live:"
 
 WINDOW_MIN = 5       # minimum frames in sliding window
 WINDOW_MAX = 30      # maximum frames in sliding window
@@ -167,6 +167,6 @@ SFT_MAX_TRACE_TOKENS = 500  # compress golden rules to this limit
 USE_LOCAL_MODEL = False
 # Set LOCAL_MODEL_PATH via env var or override here
 LOCAL_MODEL_PATH = os.environ.get(
-    "ABEE_LOCAL_MODEL_PATH",
+    "CLASP_LOCAL_MODEL_PATH",
     str(PROJECT_ROOT / "models" / "cosmos-reason2-8b"),
 )

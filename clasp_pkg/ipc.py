@@ -1,5 +1,5 @@
 """
-ABEE Agent IPC — Redis pub/sub message bus.
+CLASP Agent IPC — Redis pub/sub message bus.
 Provides broadcast, direct message, and request/reply patterns.
 See docs/AGENT_IPC_ONBOARDING.md for usage.
 """
@@ -13,7 +13,7 @@ from typing import Awaitable, Callable
 
 import redis.asyncio as aioredis
 
-log = logging.getLogger("abee.ipc")
+log = logging.getLogger("clasp.ipc")
 
 BROADCAST_CHANNEL = "agents:all"
 AGENT_CHANNEL_PREFIX = "agent:"

@@ -1,5 +1,5 @@
 """
-ABEE Kinematic Scorer — O(1) deterministic evaluation against ground truth.
+CLASP Kinematic Scorer — O(1) deterministic evaluation against ground truth.
 No LLM judge. Pure math.
 
 Includes:
@@ -22,7 +22,7 @@ from configs.settings import (
     CONSENSUS_EARLY, CONSENSUS_MID, CONSENSUS_LATE,
 )
 
-log = logging.getLogger("abee.scorer")
+log = logging.getLogger("clasp.scorer")
 
 
 # ── Dynamic Consensus Threshold ──────────────────────────────────────────────

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-ABEE QLoRA Fine-Tuning — Cosmos-Reason2-8B (Qwen3-VL-8B-Instruct)
+CLASP QLoRA Fine-Tuning — Cosmos-Reason2-8B (Qwen3-VL-8B-Instruct)
 
-Trains on golden SFT records from the ABEE survival game.
+Trains on golden SFT records from the CLASP survival game.
 Produces a LoRA adapter checkpoint for downstream deployment.
 
 Usage:
@@ -37,7 +37,7 @@ except ImportError:
     HAS_QWEN3_VL = False
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
-log = logging.getLogger("abee.train")
+log = logging.getLogger("clasp.train")
 
 # Default model — Cosmos-Reason2-8B is Qwen3-VL-8B-Instruct
 DEFAULT_MODEL = "Qwen/Qwen3-VL-8B-Instruct"
@@ -64,12 +64,12 @@ def format_chat(example, tokenizer):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="ABEE QLoRA Fine-Tuning")
+    parser = argparse.ArgumentParser(description="CLASP QLoRA Fine-Tuning")
     parser.add_argument("--model", type=str, default=DEFAULT_MODEL,
                         help="HuggingFace model ID or local path")
     parser.add_argument("--data", type=str, default="sft_dataset.openai.jsonl",
                         help="Path to SFT JSONL (OpenAI chat format)")
-    parser.add_argument("--output", type=str, default="./abee-lora-checkpoint",
+    parser.add_argument("--output", type=str, default="./clasp-lora-checkpoint",
                         help="Output directory for LoRA adapter")
     parser.add_argument("--epochs", type=int, default=3,
                         help="Number of training epochs")
@@ -85,7 +85,7 @@ def main():
                         help="LoRA alpha (scaling factor)")
     parser.add_argument("--max-seq-len", type=int, default=1024,
                         help="Maximum sequence length")
-    parser.add_argument("--wandb-project", type=str, default="abee-cosmos",
+    parser.add_argument("--wandb-project", type=str, default="clasp-cosmos",
                         help="W&B project name (set WANDB_DISABLED=true to skip)")
     args = parser.parse_args()
 
@@ -199,7 +199,7 @@ def main():
         load_best_model_at_end=True,
         metric_for_best_model="eval_loss",
         report_to="wandb" if os.environ.get("WANDB_DISABLED") != "true" else "none",
-        run_name="abee-qlora-cosmos-reason2",
+        run_name="clasp-qlora-cosmos-reason2",
         dataloader_num_workers=4,
         optim="paged_adamw_8bit",
         gradient_checkpointing=True,

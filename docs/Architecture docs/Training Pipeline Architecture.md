@@ -1,7 +1,7 @@
 # Training Pipeline Architecture
 
 ## Document Purpose
-Defines the end-to-end training pipeline for ABEE, spanning local infrastructure,
+Defines the end-to-end training pipeline for CLASP, spanning local infrastructure,
 Google Cloud Vertex AI, and NVIDIA Brev. This is the authoritative reference for
 how data flows from collection through training to deployment.
 
@@ -10,14 +10,14 @@ how data flows from collection through training to deployment.
 ## 1. Pipeline Overview
 
 ```
-                        ABEE TRAINING PIPELINE
+                        CLASP TRAINING PIPELINE
                         ======================
 
   ┌─────────────────────────────────────────────────────────────┐
   │                    LOCAL (RTX 4060 Ti 16GB)                 │
   │                                                             │
   │  ┌──────────┐    ┌──────────┐    ┌──────────┐             │
-  │  │  Video    │───→│  ABEE    │───→│   SFT    │             │
+  │  │  Video    │───→│  CLASP    │───→│   SFT    │             │
   │  │  Source   │    │ Orchest. │    │  JSONL   │──┐          │
   │  └──────────┘    └──────────┘    └──────────┘  │          │
   │       │               │               │        │          │
@@ -55,7 +55,7 @@ how data flows from collection through training to deployment.
   │  │  ┌────────────────────────────────┐      │              │
   │  │  │  Container: cosmos-rl          │      │              │
   │  │  │  GPU: 4x A100 40GB (spot)     │      │              │
-  │  │  │  Config: abee_sft.toml        │      │              │
+  │  │  │  Config: clasp_sft.toml        │      │              │
   │  │  │  Output: checkpoint → GCS     │      │              │
   │  │  └────────────────────────────────┘      │              │
   │  └──────────────────────────────────────────┘              │
@@ -73,7 +73,7 @@ how data flows from collection through training to deployment.
   │              LOCAL DEPLOYMENT                                │
   │                                                             │
   │  ┌──────────┐    ┌──────────┐    ┌──────────┐             │
-  │  │Fine-tuned│───→│  Ollama  │───→│   ABEE   │             │
+  │  │Fine-tuned│───→│  Ollama  │───→│   CLASP   │             │
   │  │Checkpoint│    │  / vLLM  │    │(improved)│             │
   │  └──────────┘    └──────────┘    └──────────┘             │
   └─────────────────────────────────────────────────────────────┘
@@ -84,7 +84,7 @@ how data flows from collection through training to deployment.
 ### 2.1 Stage 1: Data Collection (Local)
 
 **Input:** Video trajectories (real or synthetic)
-**Process:** ABEE orchestrator runs with Cosmos-Reason2-8B (4-bit, Ollama)
+**Process:** CLASP orchestrator runs with Cosmos-Reason2-8B (4-bit, Ollama)
 **Output:** `data/sft_dataset.jsonl` — one record per agent-frame decision
 
 Record schema:
@@ -108,11 +108,11 @@ Record schema:
 
 ### 2.2 Stage 2: Dataset Preparation (Vertex AI — Colab Enterprise)
 
-**Input:** ABEE JSONL from Stage 1
+**Input:** CLASP JSONL from Stage 1
 **Process:** Colab notebook converts to LLaVA conversation format
 **Output:** GCS bucket with train/val/test splits
 
-Conversion: ABEE JSONL → LLaVA conversations:
+Conversion: CLASP JSONL → LLaVA conversations:
 ```json
 {
   "conversations": [
@@ -123,7 +123,7 @@ Conversion: ABEE JSONL → LLaVA conversations:
     {
       "role": "user",
       "content": [
-        {"type": "video", "video": "gs://abee-data/trajectories/<id>.mp4", "fps": 4},
+        {"type": "video", "video": "gs://clasp-data/trajectories/<id>.mp4", "fps": 4},
         {"type": "text", "text": "Frame <N>: Should the robot release? Evaluate grip stability, velocity, and transfer readiness.\nAnswer format:\n<think>\nYour reasoning\n</think>\n<answer>THINK or ACT</answer>"}
       ]
     },
@@ -170,11 +170,11 @@ EvoKD strategy:
 Training configuration (TOML):
 ```toml
 [custom.dataset]
-path = "gs://abee-data/sft_train"
+path = "gs://clasp-data/sft_train"
 
 [train]
 epoch = 5
-output_dir = "gs://abee-checkpoints/sft"
+output_dir = "gs://clasp-checkpoints/sft"
 train_batch_per_replica = 16
 
 [policy]
@@ -222,7 +222,7 @@ R(decision, ground_truth, frame_idx) =
 ### 2.6 Stage 6: Evaluation + Deployment (Local)
 
 **Input:** Fine-tuned checkpoint from GCS
-**Process:** Load into Ollama/vLLM, run ABEE evaluation suite
+**Process:** Load into Ollama/vLLM, run CLASP evaluation suite
 **Safety gate:** ACT Precision > 0.95 required before deployment
 
 Metrics tracked:
@@ -286,7 +286,7 @@ evaluation informs the next iteration's data curation.
 
 ## 4. Vertex AI Service Mapping
 
-| Vertex AI Service | ABEE Use | Stage |
+| Vertex AI Service | CLASP Use | Stage |
 |---|---|---|
 | **Datasets** | Version SFT JSONL, manage splits | 2 |
 | **Colab Enterprise** | Interactive data prep, format conversion, quick experiments | 2 |
@@ -349,7 +349,7 @@ and **Colab Enterprise**, not Agent Builder.
 ## 7. KV Cache Architecture (Memory System)
 
 ```
-                    ABEE MEMORY ARCHITECTURE
+                    CLASP MEMORY ARCHITECTURE
                     ========================
 
   Per-Trajectory (ephemeral)           Cross-Trajectory (persistent)
@@ -405,14 +405,14 @@ and **Colab Enterprise**, not Agent Builder.
 
 ```
   LOCAL MACHINE (192.168.x.x)
-  ├── Docker: abee-redis (port 6379)
+  ├── Docker: clasp-redis (port 6379)
   ├── Ollama: cosmos-reason2-8b (port 11434)
-  ├── ABEE Dashboard (port 8050)
-  └── ABEE CLI (run_abee.py)
+  ├── CLASP Dashboard (port 8050)
+  └── CLASP CLI (run_clasp.py)
         │
         │ HTTPS (authenticated)
         ├──→ Google Cloud (Vertex AI)
-        │      ├── GCS: gs://abee-data/
+        │      ├── GCS: gs://clasp-data/
         │      ├── Custom Training Jobs (A100 spot)
         │      ├── Experiments API
         │      └── Claude 3.5 Sonnet (Model Garden)

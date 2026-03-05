@@ -1,6 +1,6 @@
 # MASTER ARCHITECTURE & IMPLEMENTATION DOCUMENT
 
-**System:** Adversarial Blind Epistemic Ensemble (ABEE) for Safe Human-Robot Object Handoff Prediction
+**System:** Adversarial Blind Epistemic Ensemble (CLASP) for Safe Human-Robot Object Handoff Prediction
 
 **Target Environment:** Local Kubelet (i7-13700F, RTX 4060 Ti 16GB, 96GB DDR5 RAM) + External NVIDIA Cosmos NIMs + GCP Vertex AI
 
@@ -12,9 +12,9 @@
 
 ### 1.1 Architectural Definition and Core Objective
 
-The Adversarial Blind Epistemic Ensemble (ABEE) is a distributed, multi-agent cognitive architecture designed to solve the stopping-time Partially Observable Markov Decision Process (POMDP) inherent in physical human-robot object handoffs. The primary objective is to evaluate sequential visual and kinematic data to predict the exact "Safe Release Window" ($T_{safe}$) before physical execution, preventing catastrophic drops or unsafe tug-of-war dynamics.
+The Adversarial Blind Epistemic Ensemble (CLASP) is a distributed, multi-agent cognitive architecture designed to solve the stopping-time Partially Observable Markov Decision Process (POMDP) inherent in physical human-robot object handoffs. The primary objective is to evaluate sequential visual and kinematic data to predict the exact "Safe Release Window" ($T_{safe}$) before physical execution, preventing catastrophic drops or unsafe tug-of-war dynamics.
 
-ABEE enforces a **Blind Paradigm**. Four primary reasoning agents operate in parallel with **zero mutual awareness**. They do not communicate, they do not observe each other's traces, and they do not know each other exist. Each agent is an isolated competitor playing a survival game against the physics of the trajectory itself. Friction and variance are introduced through **Information Asymmetry** — each agent is programmatically bound to a distinct perceptual and behavioral subspace.
+CLASP enforces a **Blind Paradigm**. Four primary reasoning agents operate in parallel with **zero mutual awareness**. They do not communicate, they do not observe each other's traces, and they do not know each other exist. Each agent is an isolated competitor playing a survival game against the physics of the trajectory itself. Friction and variance are introduced through **Information Asymmetry** — each agent is programmatically bound to a distinct perceptual and behavioral subspace.
 
 The ultimate output of this architecture is twofold:
 
@@ -786,16 +786,16 @@ The dashboard provides real-time visibility into:
 
 | Component | File | Status |
 |---|---|---|
-| Pydantic models (EpistemicDecision, AgentState, etc.) | `abee_pkg/models.py` | Complete |
-| NIM API async dispatcher | `abee_pkg/agents.py` | Complete |
-| Local inference (Cosmos-Reason2 4-bit) | `abee_pkg/local_inference.py` | Complete |
-| Dual-cache memory (LiveKV + ArchiveKV) | `abee_pkg/memory.py` | Complete |
-| O(1) Kinematic Scorer | `abee_pkg/scorer.py` | Complete |
-| SFT serializer | `abee_pkg/sft.py` | Complete |
-| Data loader (manifest + synthetic) | `abee_pkg/data_loader.py` | Complete |
-| Physics Oracle (SAM2 + MiDaS) | `abee_pkg/oracle.py` | Complete |
-| Orchestrator (main game loop) | `abee_pkg/orchestrator.py` | Complete (needs Life-Points, Hyper-GRPO) |
-| CLI entry point | `run_abee.py` | Complete |
+| Pydantic models (EpistemicDecision, AgentState, etc.) | `clasp_pkg/models.py` | Complete |
+| NIM API async dispatcher | `clasp_pkg/agents.py` | Complete |
+| Local inference (Cosmos-Reason2 4-bit) | `clasp_pkg/local_inference.py` | Complete |
+| Dual-cache memory (LiveKV + ArchiveKV) | `clasp_pkg/memory.py` | Complete |
+| O(1) Kinematic Scorer | `clasp_pkg/scorer.py` | Complete |
+| SFT serializer | `clasp_pkg/sft.py` | Complete |
+| Data loader (manifest + synthetic) | `clasp_pkg/data_loader.py` | Complete |
+| Physics Oracle (SAM2 + MiDaS) | `clasp_pkg/oracle.py` | Complete |
+| Orchestrator (main game loop) | `clasp_pkg/orchestrator.py` | Complete (needs Life-Points, Hyper-GRPO) |
+| CLI entry point | `run_clasp.py` | Complete |
 | Plotly Dash telemetry | `dashboard/app.py` | Complete (needs L_i integration) |
 | Settings / configuration | `configs/settings.py` | Complete |
 
@@ -865,13 +865,13 @@ MAX_RETRIES = 2
 
 ```
 cosmos-cookoff/
-├── run_abee.py              # CLI entry point
+├── run_clasp.py              # CLI entry point
 ├── test_api.py              # NIM API key tester
 ├── docker-compose.yml       # Redis service
 ├── configs/
 │   ├── __init__.py
 │   └── settings.py          # All tunable parameters (Appendix A)
-├── abee_pkg/
+├── clasp_pkg/
 │   ├── __init__.py
 │   ├── agents.py            # NIM async dispatcher (API mode)
 │   ├── local_inference.py   # Local Cosmos-Reason2 inference
@@ -893,7 +893,7 @@ cosmos-cookoff/
 │   └── any4lerobot/         # Dataset conversion utilities
 └── docs/
     ├── System Architecture - Adversarial Blind Epistemic Ensemble.md  # THIS DOCUMENT
-    ├── Research - ABEE/      # ABEE-specific research papers and dossiers
+    ├── Research - CLASP/      # CLASP-specific research papers and dossiers
     ├── Research - General/   # General physical AI research
     ├── REsearch - Vision/    # Vision models (SHARP, 3DGS)
     └── Other ML research/    # Supplementary ML research
@@ -903,13 +903,13 @@ cosmos-cookoff/
 
 ## APPENDIX C: EXTENDED TOOLING & API ECOSYSTEM
 
-The following tools, APIs, and models are available beyond the core ABEE stack. This inventory serves as a reference for future expansion and ablation experiments.
+The following tools, APIs, and models are available beyond the core CLASP stack. This inventory serves as a reference for future expansion and ablation experiments.
 
 **Reference archive:** `/home/Documents/documents/Technical Documentation/` contains detailed catalogs for all ecosystems below.
 
 ### Vision & 3D Models (Available / Accessible)
 
-| Tool | Type | Relevance to ABEE |
+| Tool | Type | Relevance to CLASP |
 |---|---|---|
 | **SAM3 / SAM3OBJ** | Segmentation | Next-gen oracle upgrade — improved mask tracking, object-level segmentation |
 | **VL-JEPA (V-JEPA 2)** | Latent video prediction | Latent Prediction Residual (LPR) as physics anomaly score (see Research Dossier Vector 1) |
@@ -954,4 +954,4 @@ The following tools, APIs, and models are available beyond the core ABEE stack. 
 | **LangGraph** | Stateful graph-based workflows with persistence |
 | **CrewAI** | Multi-agent role-based orchestration |
 
-_Note: ABEE uses a custom orchestrator rather than off-the-shelf agent frameworks. This is deliberate — the blind paradigm, Life-Points, and Hyper-GRPO mutation require tight control over agent lifecycle that existing frameworks don't natively support._
+_Note: CLASP uses a custom orchestrator rather than off-the-shelf agent frameworks. This is deliberate — the blind paradigm, Life-Points, and Hyper-GRPO mutation require tight control over agent lifecycle that existing frameworks don't natively support._
