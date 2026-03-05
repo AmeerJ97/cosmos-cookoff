@@ -1,80 +1,129 @@
 # ABEE — Adversarial Blind Epistemic Ensemble
-### NVIDIA Cosmos Cookoff Submission
-
-**Goal:** Predict the safe human-robot object handoff release window using 3 blind, information-asymmetric VLM agents backed by Cosmos-Reason2-8B.
+**NVIDIA Cosmos Cookoff** · Robotic handoff safety via multi-agent epistemic voting on `nvidia/cosmos-reason2-8b`
 
 ---
 
-## Quick Start
+## What it does
+
+ABEE determines the **safe release window** during a human-robot object handoff. Four blind, information-asymmetric agents each query Cosmos Reason 2 in parallel, vote ACT (release now) or THINK (wait), and the orchestrator resolves consensus under a real-time survival game. Wrong votes drain life points; dead agents are replaced by Hyper-GRPO sampling a new identity from 36 possible configurations.
+
+---
+
+## Architecture
+
+```mermaid
+flowchart TD
+    DS[(MIMIC Dataset\n1,137 trajectories\n30,666 frames)] --> ORC
+
+    subgraph ORC["Orchestrator — asyncio game loop"]
+        FR[Frame t] --> PHY[Physics Oracle\nSAM2 + MiDaS depth]
+        PHY -->|hard veto| OUT
+        PHY -->|pass| EMB[cosmos-embed-1.0\n768-dim]
+        EMB --> LKV[(LiveKV\nRedis FIFO\nwindow 5-30)]
+        EMB --> AKV[(ArchiveKV\nFAISS top-3\n722 golden rules)]
+        LKV --> AGT
+        AKV --> AGT
+
+        subgraph AGT["P x T x M Blind Agents  (async, parallel)"]
+            A[Alpha\nconservative · stride 1 · full]
+            B[Beta\nspeed · stride 3 · gripper]
+            G[Gamma\nskeptic · stride 1 · velocity]
+            D[Delta\narchival · stride 2 · full]
+        end
+
+        AGT -->|votes| CON{"Dynamic consensus\n>=100% t<8 · >=85% t<15 · >=66% t>=15"}
+        CON -->|split| TIE[cosmos-predict2-14b\ntie-breaker]
+        CON -->|agree| LP[Life-Points scorer\nL_MAX=100 · wrong ACT=-33]
+        TIE --> LP
+        LP -->|agent died| GRPO[Hyper-GRPO\nbandit over 36 identities]
+        GRPO --> AGT
+        LP --> OUT
+    end
+
+    OUT[results.json\nsft_dataset.jsonl]
+```
+
+---
+
+## Key innovations
+
+- **P×T×M asymmetry matrix** — 4 bias × 3 stride × 3 modality = **36 possible agent identities**. Each active agent sees a structurally different projection of the same frame, preventing correlated failure.
+- **Dual-cache memory** — *LiveKV* (Redis sliding window, 5–30 frames) provides temporal continuity; *ArchiveKV* (FAISS 768-dim, `nvidia/cosmos-embed-1.0`) retrieves top-3 golden rules from 722 distilled trajectory outcomes.
+- **Life-Points survival game** — agents accrue damage (`THINK` drains 2 pts/frame; wrong `ACT` removes 33 pts; early wrong `ACT` removes 66 pts). Death triggers immediate Hyper-GRPO respawn with no human intervention.
+- **Hyper-GRPO bandit** — gradient-free identity selection (`lr=0.1`, entropy injection `σ=0.5`) replaces dead agents with the highest-EV unexplored identity from the 36-identity space.
+- **Dynamic consensus threshold** — unanimity required at early frames (t < 8), 85% at mid, 66% late. Asymmetric error costs justify tighter safety at frame onset.
+- **Physics oracle hard veto** — SAM2 segmentation + MiDaS relative depth can block a release before agents are consulted; permissive fallback when GPU is unavailable so the pipeline never blocks on missing hardware.
+- **SFT data exhaust** — winning agent reasoning traces are serialised to `sft_dataset.jsonl` for downstream fine-tuning of Cosmos Reason 2 (capped at 500 tokens/trace).
+
+---
+
+## How Cosmos Reason 2 is used
+
+| Role | Model | Purpose |
+|---|---|---|
+| Primary reasoning | `nvidia/cosmos-reason2-8b` | Each agent issues `<think>` chain-of-thought + JSON `{decision, action_type, confidence}` |
+| Tie-breaker | `nvidia/cosmos-predict2-14b` | Invoked only on split votes when dynamic consensus threshold is not met |
+| Memory embedding | `nvidia/cosmos-embed-1.0` | 768-dim frame embeddings for LiveKV insertion and ArchiveKV FAISS retrieval |
+
+All models accessed via **NVIDIA NIM API** (`https://integrate.api.nvidia.com/v1`).  
+A local 4-bit inference path exists as fallback (`USE_LOCAL_MODEL=True` in `configs/settings.py`).
+
+---
+
+## Quick start
 
 ```bash
 # 1. Start Redis
 docker compose up -d redis
 
-# 2. Set your NIM API key (from build.nvidia.com)
+# 2. Set NIM key  (generate at https://build.nvidia.com)
 export NGC_API_KEY=nvapi-YOUR-KEY
 
-# 3. Test API access
+# 3. Verify access
 python test_api.py
 
-# 4. Dry run (no API calls, synthetic data)
-python run_abee.py --dry-run --trajectories 10
-
-# 5. Real run with Cosmos-Reason2-8B
+# 4. Run on MIMIC data (50 trajectories)
 python run_abee.py --trajectories 50
 
-# 6. With live telemetry dashboard (http://localhost:8050)
+# 5. With live telemetry dashboard  →  http://localhost:8050
 python run_abee.py --trajectories 50 --dashboard
 ```
 
-## Architecture
+---
+
+## Dataset
+
+| Property | Value |
+|---|---|
+| Source | MIMIC manipulation dataset |
+| Trajectories | 1,137 |
+| Frames | 30,666 |
+| Task | `mimic_displacement_to_handover_blue_block` (v2, v6, v7, v8) |
+| Conversion | `scripts/convert_mimic_to_abee.py` → `data/manifest.json` |
+
+---
+
+## Results
+
+| Metric | Value |
+|---|---|
+| Trajectories evaluated | *pending full run* |
+| Premature release rate (false positive) | *TBD* |
+| Missed release rate (false negative) | *TBD* |
+| SFT records generated | *TBD* |
+
+---
+
+## Repository structure
 
 ```
-3 Blind Agents (Cosmos-Reason2-8B via NIM)
-  Agent Alpha  — hyper-conservative, full embedding, stride=1
-  Agent Beta   — speed-optimized, gripper subspace, stride=3
-  Agent Gamma  — kinematic skeptic, velocity subspace, stride=1
-
-Each agent: THINK (defer) | ACT (commit release)
-Consensus: ≥2 agents ACT → release committed
-
-Memory:
-  LiveKV  — Redis FIFO sliding window (temporal continuity)
-  ArchiveKV — FAISS RAG (golden memory retrieval)
-
-Tie-breaker: Cosmos-Predict2.5 invoked on split votes
-
-Output: results.json + sft_dataset.jsonl (SFT training data)
+abee_pkg/      core library — agents, memory, orchestrator, GRPO, SFT, oracle
+configs/       all tunable hyperparameters (settings.py)
+dashboard/     Plotly Dash live telemetry (Dash, port 8050)
+data/          manifest + output artefacts (results.json, sft_dataset.jsonl)
+scripts/       dataset conversion utilities
+docs/          full system diagrams and research notes
 ```
 
-## Directory Structure
-
-```
-cosmos-cookoff/
-├── run_abee.py          # CLI entry point
-├── test_api.py          # NIM API key tester
-├── docker-compose.yml   # Redis service
-├── configs/
-│   └── settings.py      # All tunable parameters
-├── abee_pkg/
-│   ├── agents.py        # NIM async dispatcher
-│   ├── memory.py        # LiveKV + ArchiveKV
-│   ├── models.py        # Pydantic schemas
-│   ├── orchestrator.py  # Main asyncio game loop
-│   ├── scorer.py        # O(1) kinematic evaluator
-│   ├── sft.py           # SFT dataset serializer
-│   └── data_loader.py   # DROID/YCB manifest loader
-├── dashboard/
-│   └── app.py           # Plotly Dash UMAP telemetry
-├── data/                # Output artifacts
-│   ├── manifest.json    # (place real dataset here)
-│   ├── sft_dataset.jsonl
-│   └── results.json
-└── docs/                # Architecture docs (place here)
-```
-
-## NIM API Key
-
-Generate at **https://build.nvidia.com** → any model → "Get API Key"
-
-Set via env: `export NGC_API_KEY=nvapi-...`
+Full system diagrams (8 Mermaid diagrams — sequence, state machine, bandit loop, SFT pipeline):  
+[docs/Architecture docs/ABEE System Documentation.md](docs/Architecture%20docs/ABEE%20System%20Documentation.md)
