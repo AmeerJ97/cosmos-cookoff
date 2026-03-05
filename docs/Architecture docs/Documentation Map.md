@@ -11,24 +11,14 @@
 - **Research - General/**, **REsearch - Vision/**, **Other ML research/** — Background research.
 - **resources/** — Models, tooling inventory, external references.
 
-## Architecture Docs
-
-| File | Description |
-|------|-------------|
-| [ABEE System Documentation.md](ABEE%20System%20Documentation.md) | **Complete reference** — 8 Mermaid diagrams covering every subsystem |
-| [System Architecture - Adversarial Blind Epistemic Ensemble.md](System%20Architecture%20-%20Adversarial%20Blind%20Epistemic%20Ensemble.md) | Detailed prose architecture (958 lines) |
-| [Training Pipeline Architecture.md](Training%20Pipeline%20Architecture.md) | SFT → GRPO training plan |
-| [PROPOSAL - Multi-Modal 3D Scene Fusion & Physics Oracle Upgrade.md](PROPOSAL%20-%20Multi-Modal%203D%20Scene%20Fusion%20%26%20Physics%20Oracle%20Upgrade.md) | Phase 2 sensor fusion proposal |
-
----
-
-## Architecture Docs (docs/Architecture docs/) (docs/Architecture docs/)
+## Architecture Docs (docs/Architecture docs/)
 
 | Document | Purpose | Status |
 |---|---|---|
-| System Architecture - ABEE.md | Master system design: POMDP, agents, scoring, oracle, memory | Current (Mar 5 2026) |
-| Training Pipeline Architecture.md | End-to-end training: data flow, Vertex AI mapping, parallelization, KV cache, networking | Current (Mar 5 2026) |
-| PROPOSAL - Multi-Modal 3D Scene Fusion & Physics Oracle Upgrade.md | Proposal: SHARP 3DGS, Glinty NDFs, RTX Neural Materials, IR/ultrasonic/WiFi sensor layer, oracle upgrade | DRAFT — Open for Discussion (Mar 5 2026) |
+| [ABEE System Documentation.md](ABEE%20System%20Documentation.md) | **Complete reference** — 8 Mermaid diagrams covering every subsystem | Current |
+| [System Architecture - Adversarial Blind Epistemic Ensemble.md](System%20Architecture%20-%20Adversarial%20Blind%20Epistemic%20Ensemble.md) | Master system design: POMDP, agents, scoring, oracle, memory (958 lines) | Current |
+| [Training Pipeline Architecture.md](Training%20Pipeline%20Architecture.md) | End-to-end training: data flow, Vertex AI mapping, parallelization, KV cache | Current |
+| [PROPOSAL - Multi-Modal 3D Scene Fusion & Physics Oracle Upgrade.md](PROPOSAL%20-%20Multi-Modal%203D%20Scene%20Fusion%20%26%20Physics%20Oracle%20Upgrade.md) | Phase 2: SHARP 3DGS, sensor fusion, oracle upgrade | DRAFT |
 | Documentation Map.md | This file — index of all documentation | Current |
 
 ## Research (docs/research/)

@@ -8,12 +8,12 @@ Tracks all training runs — formal (cloud SFT/GRPO) and informal (local dry-run
 
 | Run # | Date | Trajectories | Correct | Premature | Late | No-Release | Deaths | ArchiveKV | Notes |
 |-------|------|-------------|---------|-----------|------|-----------|--------|-----------|-------|
-| 1 | 2025-03-05 | 50 | 80% (40) | 0% | 0% | 20% (10) | 69 | 0 | First run with full P0 features. Pre-ArchiveKV fix. |
-| 2 | 2025-03-05 | 50 | 72% (36) | 0% | 0% | 28% (14) | 43 | 0 | Second baseline. ArchiveKV not loading from disk. |
-| 3 | 2025-03-05 | 50 | 70% (35) | 0% | 0% | 30% (15) | 49 | 116 | Post-ArchiveKV write fix, but no load-on-startup. |
-| 4 | 2025-03-05 | 50 | 74% (37) | 0% | 0% | 26% (13) | 61 | 241 | Post auto-load fix. ArchiveKV accumulating from run 3. |
-| 5 | 2025-03-05 | 50 | 68% (34) | 0% | 0% | 32% (16) | 68 | 352 | Consecutive. GRPO top: identity[19] stride=1 mask=gripper. |
-| 6 | 2025-03-05 | 50 | 72% (36) | 0% | 4% (2) | 24% (12) | 49 | 477 | First late releases observed. Velocity mask converging. |
+| 1 | 2026-03-05 | 50 | 80% (40) | 0% | 0% | 20% (10) | 69 | 0 | First run with full P0 features. Pre-ArchiveKV fix. |
+| 2 | 2026-03-05 | 50 | 72% (36) | 0% | 0% | 28% (14) | 43 | 0 | Second baseline. ArchiveKV not loading from disk. |
+| 3 | 2026-03-05 | 50 | 70% (35) | 0% | 0% | 30% (15) | 49 | 116 | Post-ArchiveKV write fix, but no load-on-startup. |
+| 4 | 2026-03-05 | 50 | 74% (37) | 0% | 0% | 26% (13) | 61 | 241 | Post auto-load fix. ArchiveKV accumulating from run 3. |
+| 5 | 2026-03-05 | 50 | 68% (34) | 0% | 0% | 32% (16) | 68 | 352 | Consecutive. GRPO top: identity[19] stride=1 mask=gripper. |
+| 6 | 2026-03-05 | 50 | 72% (36) | 0% | 4% (2) | 24% (12) | 49 | 477 | First late releases observed. Velocity mask converging. |
 
 ### Real Inference Runs (Cosmos-Reason2-8B, Local 4-bit)
 

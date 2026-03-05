@@ -45,6 +45,9 @@ ngc_credentials.json
 *.swp
 *~
 
+# Continue (IDE extension)
+.continue/
+
 # OS
 .DS_Store
 Thumbs.db
