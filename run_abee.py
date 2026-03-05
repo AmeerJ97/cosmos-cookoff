@@ -203,7 +203,7 @@ async def run(args):
                         total_deaths, total_respawns,
                     )
 
-                    # Archive golden memories on correct release
+                    # Archive golden memories + SFT records on correct release
                     if verdict.is_in_safe_window:
                         for resp in responses:
                             if resp.decision and resp.decision.decision == "ACT":
@@ -223,6 +223,27 @@ async def run(args):
                                     embedding=emb,
                                 )
                                 orch.cache.add_golden_memory(mem)
+
+                                # Write SFT record
+                                if sft:
+                                    agent = orch.agents[resp.agent_idx]
+                                    from abee_pkg.models import SFTRecord
+                                    rec = SFTRecord(
+                                        trajectory_id=trajectory.trajectory_id,
+                                        frame_idx=frame.frame_idx,
+                                        agent_name=resp.agent_name,
+                                        agent_bias=agent.prompt_bias[:80],
+                                        temporal_stride=agent.temporal_stride,
+                                        modality_mask=agent.modality_mask,
+                                        decision=resp.decision.decision,
+                                        confidence=resp.decision.confidence,
+                                        think_trace=resp.think_trace,
+                                        is_correct=True,
+                                        ground_truth_t_release=trajectory.t_release,
+                                        embedding_snippet=emb[:16],
+                                        golden_rule=golden_rule,
+                                    )
+                                    sft.write(rec)
 
                     break
 

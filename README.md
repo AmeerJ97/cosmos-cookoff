@@ -20,7 +20,7 @@ flowchart TD
         PHY -->|hard veto| OUT
         PHY -->|pass| EMB[cosmos-embed-1.0\n768-dim]
         EMB --> LKV[(LiveKV\nRedis FIFO\nwindow 5-30)]
-        EMB --> AKV[(ArchiveKV\nFAISS top-3\n722 golden rules)]
+        EMB --> AKV[(ArchiveKV\nFAISS top-3\n3,040 golden rules)]
         LKV --> AGT
         AKV --> AGT
 
@@ -146,20 +146,22 @@ python run_abee.py --trajectories 20 --dashboard
 
 ## Results
 
-### Dry-Run Evaluation (6 runs, 300 trajectories total)
+### Full Dataset Evaluation (1,137 MIMIC trajectories, 30,666 frames)
 
 | Metric | Value |
 |---|---|
-| Premature release rate | **0%** (across all 300 trajectories) |
-| Correct release rate | 68-80% (mean 72.7%) |
-| No-release rate | 20-32% (conservative bias by design) |
-| Late release rate | <1% |
-| ArchiveKV golden memories | 0 → 477 (accumulated across runs) |
-| GRPO convergence | velocity mask + stride=1 identities favored |
+| Premature release rate | **0.0%** |
+| Correct release rate | 54.5% (620/1,137) |
+| Late release rate | 0.9% (10/1,137) |
+| No-release rate | 44.6% (conservative bias by design) |
+| SFT records generated | 2,152 |
+| ArchiveKV golden memories | 3,040 |
+| Agent deaths / respawns | 1,316 |
+| GRPO convergence | stride=3 + velocity mask identities favored |
 
-### Key Safety Result
+### Safety Headline
 
-Zero premature releases across every evaluation run. The Life-Points double penalty on early wrong ACTs (66 pts, near-fatal) combined with unanimous consensus requirements at early frames creates a structural safety guarantee without explicit hard-coded rules.
+**Zero premature releases across 1,437 total trajectories** (300 synthetic + 1,137 real). The Life-Points double penalty on early wrong ACTs (66 pts, near-fatal) combined with unanimous consensus at early frames creates a structural safety guarantee without explicit hard-coded rules. The system would rather not release than release prematurely.
 
 ---
 
