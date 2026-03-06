@@ -83,10 +83,6 @@ The SFT dataset is built through a multi-model pipeline rather than single-model
 
 New agents undergo a **spectating burn-in** period: they observe only failure cases — fatal early ACTs and agent deaths — before making live decisions. No success examples are shown. Correct behavior must be discovered through survival pressure alone.
 
-### Vertex AI — serverless CustomJob deployment
-
-Training runs are packaged as Vertex AI `CustomJob` payloads with pre-built container images. Serverless execution eliminates idle GPU cost — each job spins up an A100 node, trains, and tears down automatically. Job definitions live in `scripts/vertex_train.py` with container config in `vertex_training/Dockerfile`.
-
 ### QLoRA — NF4 rank-32 on A100
 
 Fine-tuning uses 4-bit NormalFloat quantization (NF4) with LoRA rank 32 and alpha 64, targeting `q_proj`, `k_proj`, `v_proj`, `o_proj` attention layers. This fits the full 8B parameter model into a single A100 40GB with ~12GB headroom for activation checkpointing. Training cost per SFT run: approximately $25 on spot instances.
